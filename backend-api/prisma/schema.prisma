@@ -1,0 +1,181 @@
+// ---------- Configuration Prisma ----------
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- TABLES PRINCIPALES ----------
+
+// Utilisateurs de tous rôles
+model User {
+  id             Int           @id @default(autoincrement())
+  name           String?
+  email          String         @unique
+  password       String
+  role           Role           @default(PATIENT)
+  phone          String?        @unique
+  walletAddress  String?        @unique
+  twoFactorCode  String?
+  isVerified     Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  patient        Patient?
+  doctor         Doctor?
+  admin          Admin?
+  sessions       Session[]
+  auditLogs      AuditLog[]
+  avatar         String?        @default("https://i.pravatar.cc/100")
+}
+
+// Rôles utilisateur
+enum Role {
+  PATIENT
+  MEDECIN
+  ADMIN
+}
+
+// Sessions / Tokens JWT
+model Session {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id])
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+}
+
+// ---------- DOMAINES MÉDICAUX ----------
+
+// Fiche Patient
+model Patient {
+  id            Int              @id @default(autoincrement())
+  userId        Int              @unique
+  user          User             @relation(fields: [userId], references: [id])
+  birthDate     DateTime?
+  gender        String?
+  bloodGroup    String?
+  allergies     Allergy[]
+  consultations Consultation[]
+  documents     Document[]
+  kenePoints    KenePoints[]
+  appointments  Appointment[]
+}
+
+// Allergies
+model Allergy {
+  id         Int      @id @default(autoincrement())
+  name       String
+  severity   String?
+  patientId  Int
+  patient    Patient  @relation(fields: [patientId], references: [id])
+}
+
+// Médecin
+model Doctor {
+  id             Int              @id @default(autoincrement())
+  userId         Int              @unique
+  user           User             @relation(fields: [userId], references: [id])
+  speciality     String
+  licenseNumber  String?
+  consultations  Consultation[]
+  createdAt      DateTime         @default(now())
+  appointments   Appointment[]
+}
+
+// Administrateur
+model Admin {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// Consultation médicale
+model Consultation {
+  id              Int        @id @default(autoincrement())
+  patientId       Int
+  doctorId        Int
+  diagnosis       String?
+  notes           String?
+  date            DateTime   @default(now())
+  prescription    Prescription?
+  aiSummary       String?    // résumé généré par IA
+  triageScore     Float?     // score IA
+  blockchainTxId  String?    // identifiant Hedera (HCS/HTS)
+  patient         Patient    @relation(fields: [patientId], references: [id])
+  doctor          Doctor     @relation(fields: [doctorId], references: [id])
+}
+
+// Ordonnance / Prescription
+model Prescription {
+  id              Int            @id @default(autoincrement())
+  consultationId  Int            @unique
+  consultation    Consultation   @relation(fields: [consultationId], references: [id])
+  medication      String
+  dosage          String
+  duration        String
+  issuedAt        DateTime       @default(now())
+  nftTokenId      String?        // lien Hedera HTS
+  hashOnChain     String?        // empreinte de vérification
+}
+
+// Documents médicaux (DSE)
+model Document {
+  id              Int        @id @default(autoincrement())
+  patientId       Int
+  type            String
+  url             String      // lien HFS / MinIO / S3
+  hash            String
+  uploadedAt      DateTime    @default(now())
+  patient         Patient     @relation(fields: [patientId], references: [id])
+}
+
+// Rendez-vous
+model Appointment {
+  id           Int        @id @default(autoincrement())
+  patientId    Int
+  doctorId     Int
+  date         DateTime
+  reason       String?
+  status       AppointmentStatus @default(PENDING)
+  createdAt    DateTime   @default(now())
+  patient      Patient    @relation(fields: [patientId], references: [id])
+  doctor       Doctor     @relation(fields: [doctorId], references: [id])
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ---------- ÉCONOMIE DU SYSTÈME ----------
+
+// Système de récompense KènèPoints
+model KenePoints {
+  id             Int       @id @default(autoincrement())
+  patientId      Int
+  pointsEarned   Int
+  reason         String
+  txHash         String?   // transaction Hedera HTS
+  createdAt      DateTime  @default(now())
+  patient        Patient   @relation(fields: [patientId], references: [id])
+}
+
+// ---------- JOURNAUX ET AUDITS ----------
+
+// Journal immuable (audit blockchain ou interne)
+model AuditLog {
+  id           Int       @id @default(autoincrement())
+  action       String
+  userId       Int?
+  user         User?     @relation(fields: [userId], references: [id])
+  timestamp    DateTime  @default(now())
+  hcsTxId      String?   // id transaction HCS
+  details      String?
+}

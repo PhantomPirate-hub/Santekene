@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Nouvelle Palette Définitive */
+    --background: 40 33% 96%; /* #F6F4EF */
+    --foreground: 202 45% 20%; /* #183D4C */
+
+    --nuit-confiance: 202 45% 20%; /* #183D4C */
+    --aqua-moderne: 188 82% 27%; /* #0D6E79 */
+    --vert-vitalite: 109 51% 50%; /* #59B14E */
+    --blanc-pur: 0 0% 100%; /* #FFFFFF */
+    --fond-doux: 40 33% 96%; /* #F6F4EF */
+
+    /* Variables ShadCN/UI */
+    --card: 0 0% 100%;
+    --card-foreground: 202 45% 20%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 202 45% 20%;
+ 
+    --primary: 188 82% 27%; /* Aqua Moderne */
+    --primary-foreground: 0 0% 100%; /* Blanc Pur */
+ 
+    --secondary: 109 51% 50%; /* Vert Vitalité */
+    --secondary-foreground: 0 0% 100%; /* Blanc Pur */
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 202 45% 20%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 188 82% 27%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    /* Le mode sombre sera défini ici plus tard */
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply text-[16px];
+  }
+  body {
+    @apply bg-fond-doux text-nuit-confiance;
+  }
+}
+
