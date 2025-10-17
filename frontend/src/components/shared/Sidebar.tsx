@@ -10,20 +10,65 @@ import {
   BrainCircuit,
   GraduationCap,
   AreaChart,
-  Settings
+  Settings,
+  Stethoscope, 
+  FileText, 
+  BarChart3, 
+  User, 
+  ShieldCheck, 
+  Map, 
+  Award
 } from 'lucide-react';
+import { useAuth, UserRole } from '@/context/AuthContext';
 
+// Définition des liens avec les rôles autorisés
 const navLinks = [
-  { href: '/dashboard', label: 'Accueil', icon: LayoutDashboard },
-  { href: '/dashboard/community', label: 'Communauté', icon: Users },
-  { href: '/dashboard/dse', label: 'DSE', icon: FolderKanban },
-  { href: '/dashboard/ai', label: 'IA Clinique', icon: BrainCircuit },
-  { href: '/dashboard/elearning', label: 'E-learning', icon: GraduationCap },
-  { href: '/dashboard/monitoring', label: 'Monitoring', icon: AreaChart },
+  // Commun
+  { href: '/dashboard', label: 'Accueil', icon: LayoutDashboard, roles: ['PATIENT', 'MEDECIN', 'ADMIN'] },
+  
+  // Patient
+  { href: '/dashboard/dse', label: 'Mon DSE', icon: FolderKanban, roles: ['PATIENT'] },
+  { href: '/dashboard/patient/appointments', label: 'Mes RDV', icon: Users, roles: ['PATIENT'] },
+  { href: '/dashboard/map', label: 'Carte', icon: Map, roles: ['PATIENT', 'MEDECIN'] }, // Partagé
+  { href: '/dashboard/kenepoints', label: 'KènèPoints', icon: Award, roles: ['PATIENT'] },
+
+  // Médecin
+  { href: '/dashboard/consultations', label: 'Consultations', icon: Stethoscope, roles: ['MEDECIN'] },
+  { href: '/dashboard/prescriptions', label: 'Ordonnances', icon: FileText, roles: ['MEDECIN'] },
+  { href: '/dashboard/stats', label: 'Statistiques', icon: BarChart3, roles: ['MEDECIN'] },
+
+  // Admin
+  { href: '/dashboard/admin', label: 'Admin', icon: ShieldCheck, roles: ['ADMIN'] },
+  { href: '/dashboard/users', label: 'Utilisateurs', icon: Users, roles: ['ADMIN'] },
+  { href: '/dashboard/monitoring', label: 'Monitoring', icon: AreaChart, roles: ['ADMIN'] },
+
+  // Exemples de la demande initiale (à affiner)
+  { href: '/dashboard/community', label: 'Communauté', icon: Users, roles: ['PATIENT', 'MEDECIN'] },
+  { href: '/dashboard/ai', label: 'IA Clinique', icon: BrainCircuit, roles: ['PATIENT', 'MEDECIN'] },
+  { href: '/dashboard/elearning', label: 'E-learning', icon: GraduationCap, roles: ['PATIENT', 'MEDECIN'] },
 ];
 
 const Sidebar = () => {
   const pathname = usePathname();
+  const { user, isLoading } = useAuth();
+
+  // Filtrer les liens en fonction du rôle de l'utilisateur
+  const filteredNavLinks = user ? navLinks.filter(link => link.roles.includes(user.role)) : [];
+
+  if (isLoading) {
+    return (
+        <aside className="w-64 bg-blanc-pur border-r border-border flex flex-col">
+            <div className="p-6 border-b border-border">
+                <div className="h-12 mx-auto bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <nav className="flex-1 p-4 space-y-2">
+                {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-12 bg-gray-200 rounded animate-pulse"></div>
+                ))}
+            </nav>
+        </aside>
+    );
+  }
 
   return (
     <aside className="w-64 bg-blanc-pur border-r border-border flex flex-col">
@@ -33,8 +78,8 @@ const Sidebar = () => {
         </Link>
       </div>
       <nav className="flex-1 p-4 space-y-2">
-        {navLinks.map((link) => {
-          const isActive = pathname.startsWith(link.href);
+        {filteredNavLinks.map((link) => {
+          const isActive = pathname === link.href || (link.href !== '/dashboard' && pathname.startsWith(link.href));
           return (
             <Link
               key={link.href}

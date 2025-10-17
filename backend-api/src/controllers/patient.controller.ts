@@ -1,15 +1,33 @@
 import pkg from 'express';
 const { Request, Response } = pkg;
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../services/prisma.service.ts';
 
-const prisma = new PrismaClient();
+
 
 export const getPatientById = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const loggedInUser = req.user;
+
+  if (!loggedInUser) {
+    return res.status(401).json({ message: 'Utilisateur non authentifié.' });
+  }
+
+  const targetUserId = parseInt(id);
+
+  // L'admin ou le médecin peuvent voir n'importe quelle fiche patient.
+  // Le patient ne peut voir que sa propre fiche.
+  const isAuthorized = 
+    loggedInUser.role === Role.ADMIN ||
+    loggedInUser.role === Role.MEDECIN ||
+    (loggedInUser.role === Role.PATIENT && loggedInUser.id === targetUserId);
+
+  if (!isAuthorized) {
+    return res.status(403).json({ message: 'Accès refusé. Vous n\'avez pas les permissions nécessaires.' });
+  }
 
   try {
     const patient = await prisma.patient.findUnique({
-      where: { userId: parseInt(id) }, // Supposons que l'ID du patient est l'ID de l'utilisateur
+      where: { userId: targetUserId },
       include: {
         user: true, // Inclut les données de l'utilisateur associé
         allergies: true, // Inclut les allergies

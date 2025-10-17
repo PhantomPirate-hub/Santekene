@@ -1,10 +1,10 @@
 import pkg from 'express';
 const { Request, Response } = pkg;
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../services/prisma.service.ts';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const prisma = new PrismaClient();
+
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // À remplacer par une variable d'environnement forte
 
 export const register = async (req: Request, res: Response) => {

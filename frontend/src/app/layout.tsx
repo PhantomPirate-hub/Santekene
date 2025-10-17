@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import HeartbeatLoader from "@/components/shared/HeartbeatLoader";
 import { AuthProvider } from "@/context/AuthContext";
+import { HashConnectProvider } from "@/context/HashConnectContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,9 +27,13 @@ export default function RootLayout({
     <html lang="fr">
       <body className={cn("min-h-screen bg-fond-doux font-sans antialiased", inter.className)}>
         <AuthProvider>
-          {loading ? <HeartbeatLoader /> : children}
+          <HashConnectProvider>
+            {loading ? <HeartbeatLoader /> : children}
+          </HashConnectProvider>
         </AuthProvider>
       </body>
     </html>
   );
+}
+
 }

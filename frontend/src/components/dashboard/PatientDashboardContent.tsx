@@ -3,9 +3,12 @@
 import HealthProfileWidget from "@/components/patient/HealthProfileWidget";
 import StatsWidget from "@/components/patient/StatsWidget";
 import Shortcut from "@/components/shared/Shortcut";
-import { Calendar, Mic, FileText, Award, HeartPulse } from 'lucide-react';
+import { Calendar, Mic, FileText, Award, HeartPulse, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import WalletConnectButton from '@/components/hedera/WalletConnectButton';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -24,6 +27,33 @@ const itemVariants = {
 
 export default function PatientDashboardContent() {
   const router = useRouter();
+  const { token } = useAuth();
+
+  const handleAuditAction = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/hedera/hcs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'PATIENT_DASHBOARD_VIEW',
+          payload: { page: '/dashboard' },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erreur lors de l'audit');
+      }
+
+      alert(`Action auditée avec succès ! Transaction ID: ${data.transactionId}`);
+    } catch (error: any) {
+      alert(`Erreur: ${error.message}`);
+    }
+  };
 
   return (
     <motion.div
@@ -32,13 +62,27 @@ export default function PatientDashboardContent() {
       animate="visible"
       className="space-y-8"
     >
-      <motion.h1 variants={itemVariants} className="text-3xl font-bold text-texte-principal">Bonjour [Prénom], prenez soin de votre santé avec Santé Kènè 🌿</motion.h1>
+      <div className="flex justify-between items-start">
+        <motion.h1 variants={itemVariants} className="text-3xl font-bold text-texte-principal">Bonjour [Prénom], prenez soin de votre santé avec Santé Kènè 🌿</motion.h1>
+        <motion.div variants={itemVariants}>
+          <WalletConnectButton />
+        </motion.div>
+      </div>
+      
       <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         <div className="lg:col-span-2">
           <HealthProfileWidget />
         </div>
         <StatsWidget />
       </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <Button onClick={handleAuditAction} variant="outline">
+          <ShieldCheck className="w-4 h-4 mr-2" />
+          Déclencher une action auditable (Test HCS)
+        </Button>
+      </motion.div>
+
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <Shortcut
           icon={<Calendar className="w-12 h-12 text-bleu-clair" />}
