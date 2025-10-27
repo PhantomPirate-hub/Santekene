@@ -53,8 +53,14 @@ import communityRoutes from './routes/community.routes.js';
 import healthCenterRoutes from './routes/healthcenter.routes.js';
 import hederaRoutes from './routes/hedera.routes.js';
 import aiRoutes from './routes/ai.routes.js';
+import verificationRoutes from './routes/verification.routes.js';
+import walletRoutes from './routes/wallet.routes.js';
 
 import { generalLimiter } from './middleware/rateLimiter.middleware.js';
+
+// Hedera Workers
+import { initializeHcsWorker, stopHcsWorker } from './workers/hedera-hcs.worker.js';
+import { initializeHfsWorker, stopHfsWorker } from './workers/hedera-hfs.worker.js';
 
 // Routes
 app.use('/api', generalLimiter); // Applique le limiteur général à toutes les routes /api
@@ -87,6 +93,9 @@ app.use('/api/elearning', elearningRoutes);
 // KènèPoints
 app.use('/api/kenepoints', kenepointsRoutes);
 
+// Wallet KenePoints (Phase 4)
+app.use('/api/wallet', walletRoutes);
+
 // Communauté
 app.use('/api/community', communityRoutes);
 
@@ -95,12 +104,70 @@ app.use('/api/healthcenters', healthCenterRoutes);
 app.use('/api/hedera', hederaRoutes);
 app.use('/api/ai', aiRoutes);
 
+// Vérification d'intégrité blockchain (endpoints publics)
+app.use('/api/verify', verificationRoutes);
+
 // Gestionnaire d'erreurs global (simple pour le moment)
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err.stack);
   res.status(500).send('Quelque chose s\'est mal passé !');
 });
 
-app.listen(PORT, () => {
+// Variables pour stocker les workers Hedera
+let hcsWorker: any = null;
+let hfsWorker: any = null;
+
+// Démarrer le serveur
+const server = app.listen(PORT, () => {
   console.log(`✅ Serveur backend démarré sur http://localhost:${PORT}`);
+
+  // Initialiser les workers Hedera
+  try {
+    hcsWorker = initializeHcsWorker();
+    console.log('✅ Hedera HCS Worker initialisé');
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'initialisation du worker HCS:', error);
+  }
+
+  try {
+    hfsWorker = initializeHfsWorker();
+    console.log('✅ Hedera HFS Worker initialisé');
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'initialisation du worker HFS:', error);
+  }
+});
+
+// Arrêt propre du serveur
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM reçu, arrêt propre...');
+
+  if (hcsWorker) {
+    await stopHcsWorker();
+  }
+
+  if (hfsWorker) {
+    await stopHfsWorker(hfsWorker);
+  }
+
+  server.close(() => {
+    console.log('✅ Serveur fermé proprement');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT reçu, arrêt propre...');
+
+  if (hcsWorker) {
+    await stopHcsWorker();
+  }
+
+  if (hfsWorker) {
+    await stopHfsWorker(hfsWorker);
+  }
+
+  server.close(() => {
+    console.log('✅ Serveur fermé proprement');
+    process.exit(0);
+  });
 });

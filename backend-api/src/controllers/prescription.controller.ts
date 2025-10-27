@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { prisma } from '../services/prisma.service.js';
 import { Role } from '@prisma/client';
 import * as hederaService from '../services/hedera.service.js';
+import { hederaHcsService } from '../services/hedera-hcs.service.js';
+import { HcsMessageBuilder } from '../services/hcs-message-builder.service.js';
 
 /**
  * Contrôleur pour les prescriptions
@@ -161,6 +163,32 @@ export const createPrescription = async (req: Request, res: Response) => {
         details: `Prescription créée pour la consultation ${consultationId}. ${nftTokenId ? `NFT: ${nftTokenId}` : 'Sans NFT'}`,
       },
     });
+
+    // 🔗 Intégration Hedera HCS : Enregistrer la prescription sur la blockchain
+    try {
+      const hcsMessage = HcsMessageBuilder.forPrescriptionIssued(
+        userId,
+        'MEDECIN',
+        prescription.id,
+        {
+          medications,
+          instructions: prescription.instructions,
+          duration: prescription.duration,
+          nftTokenId,
+          issuedAt: new Date(),
+        },
+        consultation.patientId,
+        parseInt(consultationId)
+      );
+
+      // Soumettre via queue (non-bloquant)
+      await hederaHcsService.submit(hcsMessage, { useQueue: true, priority: 7 }); // Priorité haute pour prescriptions
+      
+      console.log(`✅ Prescription ${prescription.id} soumise à HCS`);
+    } catch (hcsError) {
+      // Ne pas bloquer la création si HCS échoue
+      console.error('⚠️  Erreur HCS (non-bloquant):', hcsError);
+    }
 
     return res.status(201).json({
       message: 'Prescription créée avec succès',

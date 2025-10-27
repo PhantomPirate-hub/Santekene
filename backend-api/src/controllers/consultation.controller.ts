@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '../services/prisma.service.js';
 import { Role } from '@prisma/client';
+import { hederaHcsService } from '../services/hedera-hcs.service.js';
+import { HcsMessageBuilder } from '../services/hcs-message-builder.service.js';
+import { rewardRulesService } from '../services/reward-rules.service.js';
 
 /**
  * Contrôleur pour les consultations
@@ -122,6 +125,38 @@ export const createConsultation = async (req: Request, res: Response) => {
         details: `Consultation créée pour le patient ${patient.id} - Diagnostic: ${diagnosis}`,
       },
     });
+
+    // 🔗 Intégration Hedera HCS : Enregistrer la consultation sur la blockchain
+    try {
+      const hcsMessage = HcsMessageBuilder.forConsultationCreated(
+        userId,
+        'MEDECIN',
+        consultation.id,
+        { diagnosis, treatment, notes, date: consultation.date },
+        patient.id,
+        doctor.id
+      );
+
+      // Soumettre via queue (non-bloquant)
+      await hederaHcsService.submit(hcsMessage, { useQueue: true, priority: 5 });
+      
+      console.log(`✅ Consultation ${consultation.id} soumise à HCS`);
+    } catch (hcsError) {
+      // Ne pas bloquer la création si HCS échoue
+      console.error('⚠️  Erreur HCS (non-bloquant):', hcsError);
+    }
+
+    // 🎁 Récompense KenePoints : Consultation complétée
+    try {
+      await rewardRulesService.rewardConsultationCompleted(
+        parseInt(patientId),
+        consultation.id
+      );
+      console.log(`✅ Récompense attribuée au patient ${patientId} pour consultation ${consultation.id}`);
+    } catch (rewardError) {
+      // Ne pas bloquer la création si la récompense échoue
+      console.error('⚠️  Erreur récompense (non-bloquant):', rewardError);
+    }
 
     return res.status(201).json({
       message: 'Consultation créée avec succès',
@@ -293,6 +328,31 @@ export const updateConsultation = async (req: Request, res: Response) => {
         details: `Consultation ${id} mise à jour`,
       },
     });
+
+    // 🔗 Intégration Hedera HCS : Enregistrer la modification sur la blockchain
+    try {
+      const hcsMessage = HcsMessageBuilder.forConsultationUpdated(
+        userId,
+        'MEDECIN',
+        updatedConsultation.id,
+        {
+          diagnosis: updatedConsultation.diagnosis,
+          treatment: updatedConsultation.treatment,
+          notes: updatedConsultation.notes,
+          date: updatedConsultation.date,
+        },
+        updatedConsultation.patientId,
+        doctor.id
+      );
+
+      // Soumettre via queue (non-bloquant)
+      await hederaHcsService.submit(hcsMessage, { useQueue: true, priority: 5 });
+      
+      console.log(`✅ Consultation ${updatedConsultation.id} (modification) soumise à HCS`);
+    } catch (hcsError) {
+      // Ne pas bloquer la modification si HCS échoue
+      console.error('⚠️  Erreur HCS (non-bloquant):', hcsError);
+    }
 
     return res.status(200).json({
       message: 'Consultation mise à jour avec succès',

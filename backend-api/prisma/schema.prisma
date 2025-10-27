@@ -36,6 +36,7 @@ model User {
   communityPosts CommunityPost[] @relation("CommunityPosts")
   communityComments CommunityComment[] @relation("CommunityComments")
   communityLikes CommunityLike[] @relation("CommunityLikes")
+  wallet         UserWallet? // Portefeuille KenePoints
 }
 
 // Rôles utilisateur
@@ -244,11 +245,18 @@ model Document {
   id              Int           @id @default(autoincrement())
   patientId       Int
   consultationId  Int?          // Document lié à une consultation (optionnel)
-  type            String
-  url             String        // lien HFS / MinIO / S3
-  hash            String
-  title           String?       // Titre du document
-  uploadedAt      DateTime      @default(now())
+  type            String        // Type de document (ANALYSE, RADIO, etc.)
+  name            String        // Nom original du fichier
+  description     String?       @db.Text // Description du document
+  url             String        @db.Text // Hedera FileId (après traitement worker) ou URL temporaire
+  fileUrl         String?       @db.Text // URL MinIO/S3/Local permanente
+  hash            String        // SHA-256 du fichier pour intégrité
+  size            Int           // Taille du fichier en octets
+  mimeType        String        // Type MIME du fichier
+  title           String?       // Titre du document (deprecated, utiliser name)
+  uploadedBy      Int           // ID de l'utilisateur qui a uploadé
+  uploadedAt      DateTime      @default(now()) // Date d'upload (deprecated, utiliser createdAt)
+  createdAt       DateTime      @default(now()) // Date de création
   patient         Patient       @relation(fields: [patientId], references: [id])
   consultation    Consultation? @relation(fields: [consultationId], references: [id])
 }
@@ -464,6 +472,47 @@ enum HederaTransactionType {
   HTS_TRANSFER_NFT  // Transfer NFT
   HTS_TRANSFER_FT   // Transfer fungible token (KènèPoints)
   HTS_CREATE_TOKEN  // Create token
+}
+
+// ---------- KENEPOINTS (HTS) ----------
+
+// Portefeuille de KenePoints
+model UserWallet {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  user            User     @relation(fields: [userId], references: [id])
+  balance         Float    @default(0) // Balance actuelle en KNP
+  totalEarned     Float    @default(0) // Total gagné depuis le début
+  totalSpent      Float    @default(0) // Total dépensé
+  lastUpdate      DateTime @default(now()) @updatedAt
+  transactions    WalletTransaction[]
+}
+
+// Transactions de KenePoints
+model WalletTransaction {
+  id              Int      @id @default(autoincrement())
+  walletId        Int
+  wallet          UserWallet @relation(fields: [walletId], references: [id])
+  amount          Float    // Montant (positif = gain, négatif = dépense)
+  type            WalletTransactionType // Type de transaction
+  reason          String   @db.Text // Raison de la transaction
+  relatedEntityId Int?     // ID de l'entité liée (consultation, document, etc.)
+  relatedEntityType String? // Type de l'entité (CONSULTATION, DOCUMENT, etc.)
+  hederaTxId      String?  // Transaction ID Hedera HTS
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  createdAt       DateTime @default(now())
+  metadata        String?  @db.Text // JSON metadata
+}
+
+// Types de transactions de wallet
+enum WalletTransactionType {
+  REWARD          // Récompense pour une action
+  TRANSFER_SENT   // Transfert envoyé à un autre utilisateur
+  TRANSFER_RECEIVED // Transfert reçu d'un autre utilisateur
+  SPEND           // Dépense (achat, service)
+  REFUND          // Remboursement
+  ADJUSTMENT      // Ajustement manuel (admin)
+  BONUS           // Bonus spécial
 }
 
 // ---------- CENTRES DE SANTÉ ----------

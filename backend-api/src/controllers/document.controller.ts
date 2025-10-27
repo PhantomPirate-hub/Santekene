@@ -1,15 +1,20 @@
 import { Request, Response } from 'express';
 import { prisma } from '../services/prisma.service.js';
 import { Role } from '@prisma/client';
-import * as hederaService from '../services/hedera.service.js';
 import crypto from 'crypto';
+import { hederaHcsService } from '../services/hedera-hcs.service.js';
+import { HcsMessageBuilder } from '../services/hcs-message-builder.service.js';
+import { fileStorageService } from '../services/file-storage.service.js';
+import { hederaHfsService } from '../services/hedera-hfs.service.js';
+import { hederaQueueService } from '../services/hedera-queue.service.js';
+import { rewardRulesService } from '../services/reward-rules.service.js';
 
 /**
  * Contrôleur pour les documents médicaux
  */
 
 /**
- * Uploader un document médical
+ * Uploader un document médical (STOCKAGE HYBRIDE MinIO + Hedera HFS)
  */
 export const uploadDocument = async (req: Request, res: Response) => {
   try {
@@ -48,36 +53,47 @@ export const uploadDocument = async (req: Request, res: Response) => {
       }
     }
 
-    // Calculer le hash du fichier
+    // =============== PHASE 1 : UPLOAD SUR MinIO/S3 ===============
+    console.log(`📤 Upload document: ${file.originalname} (${file.size} bytes)`);
+
+    const fileUpload = await fileStorageService.uploadFile(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      {
+        patientId: patientId.toString(),
+        type,
+        uploadedBy: currentUser.id.toString(),
+      }
+    );
+
+    console.log(`✅ Fichier uploadé sur ${fileUpload.url}`);
+
+    // =============== PHASE 2 : CRÉER LE CERTIFICAT HFS ===============
     const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
 
-    // Uploader le fichier sur Hedera File Service (si configuré)
-    let fileId = null;
-    try {
-      fileId = await hederaService.uploadFileToHfs(file.buffer);
+    const certificate = hederaHfsService.createCertificate(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      fileUpload.url, // URL MinIO/Local
+      currentUser.id,
+      currentUser.role,
+      {
+        type: 'DOCUMENT',
+        id: 0, // Sera mis à jour après création du document
+      }
+    );
 
-      // Enregistrer la transaction Hedera
-      await prisma.hederaTransaction.create({
-        data: {
-          transactionId: fileId,
-          type: 'FILE_UPLOAD',
-          userId: currentUser.id,
-          amount: file.size,
-          details: `Document médical uploadé - File ID: ${fileId}`,
-        },
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'upload sur HFS:', error);
-      // Continuer sans Hedera si non configuré
-      fileId = `local_${Date.now()}_${file.originalname}`;
-    }
+    console.log(`📜 Certificat créé - Hash: ${certificate.fileHash}`);
 
-    // Créer le document dans la base de données
+    // =============== PHASE 3 : CRÉER LE DOCUMENT EN DB ===============
     const document = await prisma.document.create({
       data: {
         patientId: parseInt(patientId),
         type,
-        url: fileId,
+        url: fileUpload.url, // URL MinIO (sera mis à jour avec FileId Hedera via worker)
+        fileUrl: fileUpload.url, // URL MinIO permanente
         hash: fileHash,
         name: file.originalname,
         description: description || '',
@@ -100,7 +116,54 @@ export const uploadDocument = async (req: Request, res: Response) => {
       },
     });
 
-    // Créer une notification pour le patient
+    console.log(`✅ Document créé en DB: ID ${document.id}`);
+
+    // =============== PHASE 4 : SOUMETTRE CERTIFICAT À HEDERA (ASYNC) ===============
+    try {
+      // Mettre à jour l'entityId du certificat
+      certificate.relatedEntity = {
+        type: 'DOCUMENT',
+        id: document.id,
+      };
+
+      // Soumettre le certificat via queue HFS (non-bloquant)
+      await hederaQueueService.addHfsJob(
+        {
+          certificate,
+          documentId: document.id,
+          userId: currentUser.id,
+        },
+        {
+          priority: 6,
+          delay: 1000, // 1 seconde de délai pour éviter rate limiting
+        }
+      );
+
+      console.log(`✅ Certificat HFS soumis à la queue pour document ${document.id}`);
+    } catch (hfsError) {
+      console.error('⚠️  Erreur soumission certificat HFS (non-bloquant):', hfsError);
+    }
+
+    // =============== PHASE 5 : HCS (ÉVÉNEMENT UPLOAD) ===============
+    try {
+      const hcsMessage = HcsMessageBuilder.forDocumentUploaded(
+        currentUser.id,
+        currentUser.role as 'PATIENT' | 'MEDECIN',
+        document.id,
+        fileHash,
+        parseInt(patientId),
+        type
+      );
+
+      // Soumettre via queue (non-bloquant)
+      await hederaHcsService.submit(hcsMessage, { useQueue: true, priority: 6 });
+
+      console.log(`✅ Document ${document.id} (${type}) soumis à HCS`);
+    } catch (hcsError) {
+      console.error('⚠️  Erreur HCS (non-bloquant):', hcsError);
+    }
+
+    // =============== PHASE 6 : NOTIFICATION & AUDIT ===============
     await prisma.notification.create({
       data: {
         userId: patient.userId,
@@ -111,7 +174,6 @@ export const uploadDocument = async (req: Request, res: Response) => {
       },
     });
 
-    // Enregistrer dans les logs d'audit
     await prisma.auditLog.create({
       data: {
         action: 'UPLOAD_DOCUMENT',
@@ -120,12 +182,34 @@ export const uploadDocument = async (req: Request, res: Response) => {
       },
     });
 
+    // 🎁 Récompense KenePoints : Document uploadé
+    try {
+      await rewardRulesService.rewardDocumentUploaded(
+        currentUser.id,
+        document.id
+      );
+      console.log(`✅ Récompense attribuée à l'utilisateur ${currentUser.id} pour document ${document.id}`);
+    } catch (rewardError) {
+      // Ne pas bloquer l'upload si la récompense échoue
+      console.error('⚠️  Erreur récompense (non-bloquant):', rewardError);
+    }
+
     return res.status(201).json({
       message: 'Document uploadé avec succès',
       document,
+      storage: {
+        type: fileStorageService.isAvailable() ? 'MinIO/S3' : 'Local',
+        url: fileUpload.url,
+        size: fileUpload.size,
+      },
+      blockchain: {
+        hfsQueued: true,
+        hcsQueued: true,
+        fileHash,
+      },
     });
   } catch (error) {
-    console.error('Erreur:', error);
+    console.error('❌ Erreur upload document:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 };
@@ -337,7 +421,7 @@ export const deleteDocument = async (req: Request, res: Response) => {
 };
 
 /**
- * Télécharger un document
+ * Télécharger un document (HYBRIDE MinIO/Local)
  */
 export const downloadDocument = async (req: Request, res: Response) => {
   try {
@@ -371,49 +455,45 @@ export const downloadDocument = async (req: Request, res: Response) => {
       },
     });
 
-    // Si le document est sur Hedera, le récupérer
-    if (document.url.startsWith('0.0.')) {
-      try {
-        const fileContent = await hederaService.getFileFromHfs(document.url);
-        res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
-        res.setHeader('Content-Disposition', `attachment; filename="${document.name}"`);
-        return res.send(fileContent);
-      } catch (error) {
-        console.error('Erreur lors de la récupération du fichier depuis HFS:', error);
-        return res.status(500).json({ error: 'Erreur lors de la récupération du fichier' });
-      }
-    }
+    try {
+      // Récupérer le fichier depuis le stockage (MinIO ou local)
+      const fileUrl = document.fileUrl || document.url;
+      const fileBuffer = await fileStorageService.downloadFile(fileUrl);
 
-    // Sinon, retourner les métadonnées (à adapter selon votre stockage local)
-    return res.status(200).json({
-      message: 'Document disponible',
-      document: {
-        id: document.id,
-        name: document.name,
-        type: document.type,
-        url: document.url,
-        hash: document.hash,
-        size: document.size,
-        mimeType: document.mimeType,
-      },
-    });
+      // Vérifier l'intégrité du fichier avec le hash stocké
+      const currentHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+      if (currentHash !== document.hash) {
+        console.warn(`⚠️  Intégrité compromise pour document ${id}: hash ne correspond pas`);
+        // On continue quand même mais on log l'avertissement
+      }
+
+      res.setHeader('Content-Type', document.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.name}"`);
+      res.setHeader('Content-Length', fileBuffer.length.toString());
+      res.setHeader('X-File-Hash', document.hash); // Hash original pour vérification cliente
+
+      return res.send(fileBuffer);
+    } catch (error) {
+      console.error('❌ Erreur lors de la récupération du fichier:', error);
+      return res.status(500).json({
+        error: 'Erreur lors de la récupération du fichier',
+        message: 'Le fichier est peut-être corrompu ou inaccessible',
+      });
+    }
   } catch (error) {
-    console.error('Erreur:', error);
+    console.error('❌ Erreur download document:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 };
 
 /**
- * Vérifier l'intégrité d'un document
+ * Vérifier l'intégrité d'un document (AVEC CERTIFICAT HEDERA HFS)
  */
 export const verifyDocumentIntegrity = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const file = req.file;
-
-    if (!file) {
-      return res.status(400).json({ error: 'Aucun fichier fourni pour la vérification' });
-    }
+    const { downloadFromStorage } = req.query; // Option pour télécharger depuis stockage
 
     const document = await prisma.document.findUnique({
       where: { id: parseInt(id) },
@@ -423,21 +503,82 @@ export const verifyDocumentIntegrity = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Document non trouvé' });
     }
 
-    // Calculer le hash du fichier fourni
-    const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+    let fileBuffer: Buffer;
 
-    const isValid = fileHash === document.hash;
+    // Si un fichier est fourni dans la requête, l'utiliser
+    if (req.file) {
+      fileBuffer = req.file.buffer;
+    }
+    // Sinon, télécharger depuis le stockage
+    else if (downloadFromStorage === 'true') {
+      const fileUrl = document.fileUrl || document.url;
+      fileBuffer = await fileStorageService.downloadFile(fileUrl);
+    } else {
+      return res.status(400).json({
+        error: 'Aucun fichier fourni pour la vérification',
+        hint: 'Uploadez un fichier ou utilisez ?downloadFromStorage=true',
+      });
+    }
+
+    // ===== VÉRIFICATION NIVEAU 1 : HASH DB =====
+    const currentHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+    const dbHashValid = currentHash === document.hash;
+
+    // ===== VÉRIFICATION NIVEAU 2 : CERTIFICAT HEDERA HFS =====
+    let hfsVerification: any = null;
+
+    // Récupérer le FileId Hedera depuis url (si commence par 0.0.)
+    if (document.url.startsWith('0.0.')) {
+      try {
+        const hfsFileId = document.url;
+        hfsVerification = await hederaHfsService.verifyFileIntegrity(fileBuffer, hfsFileId);
+
+        console.log(`✅ Vérification HFS pour document ${id}: ${hfsVerification.isValid}`);
+      } catch (hfsError) {
+        console.error('⚠️  Erreur vérification HFS:', hfsError);
+        hfsVerification = {
+          error: 'Certificat HFS non accessible',
+          details: (hfsError as Error).message,
+        };
+      }
+    }
+
+    // ===== RÉSULTAT GLOBAL =====
+    const isFullyValid = dbHashValid && (hfsVerification?.isValid !== false);
 
     return res.status(200).json({
-      verified: isValid,
-      documentHash: document.hash,
-      providedHash: fileHash,
-      message: isValid
-        ? 'Le document est authentique et n\'a pas été modifié'
-        : 'Attention : le document a été modifié ou ne correspond pas',
+      verified: isFullyValid,
+      verification: {
+        database: {
+          valid: dbHashValid,
+          storedHash: document.hash,
+          currentHash,
+        },
+        blockchain: hfsVerification
+          ? {
+              available: true,
+              valid: hfsVerification.isValid,
+              certificateHash: hfsVerification.certificateHash,
+              certificate: hfsVerification.certificate,
+            }
+          : {
+              available: false,
+              reason: 'Document uploadé avant intégration HFS',
+            },
+      },
+      document: {
+        id: document.id,
+        name: document.name,
+        type: document.type,
+        uploadedAt: document.createdAt,
+        uploadedBy: document.uploadedBy,
+      },
+      message: isFullyValid
+        ? '✅ Le document est authentique et n\'a pas été modifié'
+        : '⚠️  Attention : le document a été modifié ou ne correspond pas aux enregistrements',
     });
   } catch (error) {
-    console.error('Erreur:', error);
+    console.error('❌ Erreur vérification document:', error);
     return res.status(500).json({ error: 'Erreur serveur' });
   }
 };

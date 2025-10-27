@@ -22,7 +22,8 @@ import {
   Calendar,
   Bell,
   Activity,
-  UserCheck
+  UserCheck,
+  Coins
 } from 'lucide-react';
 import { useAuth, UserRole } from '@/context/AuthContext';
 
@@ -37,6 +38,7 @@ const navLinks = [
   { href: '/dashboard/patient/appointments', label: 'Mes RDV', icon: Users, roles: ['PATIENT'] },
   { href: '/dashboard/patient/triage', label: 'IA Clinique', icon: BrainCircuit, roles: ['PATIENT'] },
   { href: '/dashboard/patient/kenepoints', label: 'KènèPoints', icon: Award, roles: ['PATIENT'] },
+  { href: '/dashboard/wallet', label: 'Mon Portefeuille', icon: Coins, roles: ['PATIENT'] },
   { href: '/dashboard/map', label: 'Carte', icon: Map, roles: ['PATIENT', 'MEDECIN'] },
   { href: '/dashboard/community', label: 'Communauté', icon: Users, roles: ['PATIENT', 'MEDECIN'] },
   { href: '/dashboard/patient/dse-access', label: 'Demandes d\'accès', icon: Shield, roles: ['PATIENT'] },
@@ -45,6 +47,7 @@ const navLinks = [
   { href: '/dashboard/medecin/consultations', label: 'Consultations', icon: Stethoscope, roles: ['MEDECIN'] },
   { href: '/dashboard/medecin/historique', label: 'Historique', icon: FileText, roles: ['MEDECIN'] },
   { href: '/dashboard/medecin/rdv', label: 'Mes RDV', icon: Calendar, roles: ['MEDECIN'] },
+  { href: '/dashboard/wallet', label: 'Mon Portefeuille', icon: Coins, roles: ['MEDECIN'] },
   { href: '/dashboard/medecin/notifications', label: 'Notifications', icon: Bell, roles: ['MEDECIN'] },
   { href: '/dashboard/medecin/stats', label: 'Statistiques', icon: BarChart3, roles: ['MEDECIN'] },
 
