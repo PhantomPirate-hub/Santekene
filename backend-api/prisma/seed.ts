@@ -1,4 +1,4 @@
-import { PrismaClient, Role, AppointmentStatus } from '@prisma/client';
+import { PrismaClient, Role, AppointmentStatus, AllergySeverity } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -21,56 +21,61 @@ async function main() {
 
   const user1 = await prisma.user.upsert({
     where: { email: 'patient1@example.com' },
-    update: { name: 'Patient One', password: hashedPassword, role: Role.PATIENT },
+    update: { name: 'Patient One', password: hashedPassword, role: Role.PATIENT, phone: '+223 70 11 22 33' },
     create: {
       email: 'patient1@example.com',
       name: 'Patient One',
       password: hashedPassword,
       role: Role.PATIENT,
+      phone: '+223 70 11 22 33',
     },
   });
 
   const user2 = await prisma.user.upsert({
     where: { email: 'patient2@example.com' },
-    update: { name: 'Patient Two', password: hashedPassword, role: Role.PATIENT },
+    update: { name: 'Patient Two', password: hashedPassword, role: Role.PATIENT, phone: '+223 70 44 55 66' },
     create: {
       email: 'patient2@example.com',
       name: 'Patient Two',
       password: hashedPassword,
       role: Role.PATIENT,
+      phone: '+223 70 44 55 66',
     },
   });
 
   const user3 = await prisma.user.upsert({
     where: { email: 'patient3@example.com' },
-    update: { name: 'Patient Three', password: hashedPassword, role: Role.PATIENT },
+    update: { name: 'Patient Three', password: hashedPassword, role: Role.PATIENT, phone: '+223 70 77 88 99' },
     create: {
       email: 'patient3@example.com',
       name: 'Patient Three',
       password: hashedPassword,
       role: Role.PATIENT,
+      phone: '+223 70 77 88 99',
     },
   });
 
   const user4 = await prisma.user.upsert({
     where: { email: 'doctor1@example.com' },
-    update: { name: 'Dr. Diallo', password: hashedPassword, role: Role.MEDECIN },
+    update: { name: 'Dr. Diallo', password: hashedPassword, role: Role.MEDECIN, phone: '+223 76 12 34 56' },
     create: {
       email: 'doctor1@example.com',
       name: 'Dr. Diallo',
       password: hashedPassword,
       role: Role.MEDECIN,
+      phone: '+223 76 12 34 56',
     },
   });
 
   const user5 = await prisma.user.upsert({
     where: { email: 'doctor2@example.com' },
-    update: { name: 'Dr. Traoré', password: hashedPassword, role: Role.MEDECIN },
+    update: { name: 'Dr. Traoré', password: hashedPassword, role: Role.MEDECIN, phone: '+223 76 98 76 54' },
     create: {
       email: 'doctor2@example.com',
       name: 'Dr. Traoré',
       password: hashedPassword,
       role: Role.MEDECIN,
+      phone: '+223 76 98 76 54',
     },
   });
 
@@ -114,21 +119,39 @@ async function main() {
   // --- Création des Médecins ---
   const doctor1 = await prisma.doctor.upsert({
     where: { userId: user4.id },
-    update: { speciality: 'Médecine Générale', licenseNumber: 'MG-ML-001' },
+    update: { 
+      speciality: 'Médecine Générale', 
+      licenseNumber: 'MG-ML-001',
+      structure: 'Centre de Santé de Bamako',
+      location: 'Bamako, Commune III',
+      phone: '+223 76 12 34 56',
+    },
     create: {
       userId: user4.id,
       speciality: 'Médecine Générale',
       licenseNumber: 'MG-ML-001',
+      structure: 'Centre de Santé de Bamako',
+      location: 'Bamako, Commune III',
+      phone: '+223 76 12 34 56',
     },
   });
 
   const doctor2 = await prisma.doctor.upsert({
     where: { userId: user5.id },
-    update: { speciality: 'Pédiatrie', licenseNumber: 'PED-ML-002' },
+    update: { 
+      speciality: 'Pédiatrie', 
+      licenseNumber: 'PED-ML-002',
+      structure: 'Hôpital Gabriel Touré',
+      location: 'Bamako, Commune I',
+      phone: '+223 76 98 76 54',
+    },
     create: {
       userId: user5.id,
       speciality: 'Pédiatrie',
       licenseNumber: 'PED-ML-002',
+      structure: 'Hôpital Gabriel Touré',
+      location: 'Bamako, Commune I',
+      phone: '+223 76 98 76 54',
     },
   });
   console.log('Profils médecins créés/mis à jour.');
@@ -136,13 +159,28 @@ async function main() {
   // --- Allergies ---
   await prisma.allergy.createMany({
     data: [
-      { name: 'Pollen', severity: 'Légère', patientId: patient1.id },
-      { name: 'Arachides', severity: 'Sévère', patientId: patient2.id },
-      { name: 'Antibiotique - Amoxicilline', severity: 'Modérée', patientId: patient3.id },
+      { 
+        allergen: 'Pénicilline', 
+        reaction: 'Éruption cutanée sévère, démangeaisons intenses, gonflement du visage', 
+        severity: 'HIGH',
+        patientId: patient1.id 
+      },
+      { 
+        allergen: 'Arachides', 
+        reaction: 'Choc anaphylactique, difficulté respiratoire, urticaire généralisée', 
+        severity: 'HIGH',
+        patientId: patient2.id 
+      },
+      { 
+        allergen: 'Amoxicilline', 
+        reaction: 'Nausées, vomissements, diarrhée', 
+        severity: 'MEDIUM',
+        patientId: patient3.id 
+      },
     ],
     skipDuplicates: true,
   });
-  console.log('Allergies ajoutées.');
+  console.log('Allergies ajoutées avec descriptions détaillées.');
 
   // --- Consultations ---
   const consultation1 = await prisma.consultation.create({
@@ -151,6 +189,7 @@ async function main() {
       doctorId: doctor1.id,
       diagnosis: 'Paludisme simple',
       notes: 'Traitement antipaludique prescrit',
+      allergies: 'Allergie à la pénicilline détectée lors de l\'examen',
       aiSummary: 'Fièvre et fatigue détectées par IA',
       triageScore: 0.82,
       blockchainTxId: 'HCS-TX-1A9Z',
@@ -163,6 +202,7 @@ async function main() {
       doctorId: doctor1.id,
       diagnosis: 'Allergie alimentaire',
       notes: 'Éviter arachides et aliments gras',
+      allergies: 'Allergie sévère aux arachides et aux fruits à coque',
       aiSummary: 'Réaction cutanée légère',
       triageScore: 0.64,
       blockchainTxId: 'HCS-TX-2B7M',
@@ -237,9 +277,24 @@ async function main() {
   });
   console.log('Journaux d\'audit ajoutés.');
 
-} catch (e) {
-  console.error('Erreur lors de la création des données de seed:', e);
-  process.exit(1);
-} finally {
-  await prisma.$disconnect();
+  // --- Admin Profile ---
+  await prisma.admin.upsert({
+    where: { userId: adminUser.id },
+    update: {},
+    create: {
+      userId: adminUser.id,
+    },
+  });
+  console.log('Profil admin créé/mis à jour.');
+  
+  console.log('\n✅ Seed terminé avec succès !');
 }
+
+main()
+  .catch((e) => {
+    console.error('Erreur lors de la création des données de seed:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

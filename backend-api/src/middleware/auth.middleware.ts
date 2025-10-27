@@ -25,7 +25,7 @@ export const protect = (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ message: 'Accès non autorisé, token manquant ou malformé.' });
   }
 
-  const token = bearer.split(' ')[1].trim();
+  const token = bearer.split('Bearer ')[1]?.trim() || '';
 
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { userId: number; role: string; iat: number; exp: number };

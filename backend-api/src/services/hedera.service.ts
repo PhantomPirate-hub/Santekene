@@ -17,29 +17,47 @@ dotenv.config();
 const accountIdStr = process.env.HEDERA_ACCOUNT_ID;
 const privateKeyStr = process.env.HEDERA_PRIVATE_KEY;
 const topicIdStr = process.env.HEDERA_HCS_TOPIC_ID;
+const encryptionKey = process.env.AES_ENCRYPTION_KEY;
 
-if (!accountIdStr || !privateKeyStr || !topicIdStr) {
-  throw new Error('Les variables d\'environnement Hedera (HEDERA_ACCOUNT_ID, HEDERA_PRIVATE_KEY, HEDERA_HCS_TOPIC_ID) doivent être définies.');
+// Vérifier si Hedera est configuré
+const isHederaConfigured = accountIdStr && privateKeyStr && topicIdStr;
+
+let client: Client | null = null;
+let accountId: AccountId | null = null;
+let privateKey: PrivateKey | null = null;
+let topicId: TopicId | null = null;
+
+if (isHederaConfigured) {
+  try {
+    accountId = AccountId.fromString(accountIdStr!);
+    privateKey = PrivateKey.fromString(privateKeyStr!);
+    topicId = TopicId.fromString(topicIdStr!);
+    
+    client = Client.forName(process.env.HEDERA_NETWORK || 'testnet');
+    client.setOperator(accountId, privateKey);
+  } catch (error) {
+    console.warn('⚠️  Erreur lors de la configuration Hedera:', error);
+  }
+} else {
+  console.warn('⚠️  Hedera non configuré. Les fonctionnalités blockchain seront désactivées.');
 }
 
-const accountId = AccountId.fromString(accountIdStr);
-const privateKey = PrivateKey.fromString(privateKeyStr);
-const topicId = TopicId.fromString(topicIdStr);
-
-const client = Client.forName(process.env.HEDERA_NETWORK || 'testnet');
-client.setOperator(accountId, privateKey);
-
 // --- Fonctions utilitaires pour le chiffrement ---
-const encryptionKey = process.env.AES_ENCRYPTION_KEY;
 if (!encryptionKey) {
-  throw new Error('La variable d\'environnement AES_ENCRYPTION_KEY doit être définie.');
+  console.warn('⚠️  AES_ENCRYPTION_KEY non définie. Les fonctionnalités de chiffrement seront limitées.');
 }
 
 function encrypt(data: Buffer): string {
+  if (!encryptionKey) {
+    throw new Error('Clé de chiffrement non configurée');
+  }
   return CryptoJS.AES.encrypt(data.toString('base64'), encryptionKey).toString();
 }
 
 function decrypt(encryptedData: string): Buffer {
+  if (!encryptionKey) {
+    throw new Error('Clé de chiffrement non configurée');
+  }
   const bytes = CryptoJS.AES.decrypt(encryptedData, encryptionKey);
   return Buffer.from(bytes.toString(CryptoJS.enc.Base64), 'base64');
 }
@@ -49,6 +67,10 @@ class HederaService {
    * Soumet un message au topic HCS configuré.
    */
   async submitToHCS(message: string): Promise<string> {
+    if (!client || !topicId) {
+      throw new Error('Hedera n\'est pas configuré. Veuillez configurer les variables d\'environnement Hedera.');
+    }
+    
     try {
       const tx = await new TopicMessageSubmitTransaction({
         topicId: topicId,
@@ -57,8 +79,6 @@ class HederaService {
 
       const receipt = await tx.getReceipt(client);
       const transactionId = tx.transactionId.toString();
-
-      console.log(`Message soumis avec succès au topic ${topicId}. Transaction ID: ${transactionId}`);
       return transactionId;
     } catch (error) {
       console.error("Erreur lors de la soumission du message à HCS:", error);
@@ -72,6 +92,10 @@ class HederaService {
    * @returns L'ID du fichier sur HFS.
    */
   async uploadToHFS(fileContent: Buffer): Promise<string> {
+    if (!client) {
+      throw new Error('Hedera n\'est pas configuré. Veuillez configurer les variables d\'environnement Hedera.');
+    }
+    
     try {
       const encryptedContent = encrypt(fileContent);
       
@@ -106,6 +130,10 @@ class HederaService {
    * @returns L'ID du nouveau token.
    */
   async createFungibleToken(tokenName: string, tokenSymbol: string): Promise<string> {
+    if (!client || !accountId || !privateKey) {
+      throw new Error('Hedera n\'est pas configuré. Veuillez configurer les variables d\'environnement Hedera.');
+    }
+    
     try {
       const tx = await new TokenCreateTransaction()
         .setTokenName(tokenName)
@@ -139,4 +167,12 @@ class HederaService {
   }
 }
 
-export const hederaService = new HederaService();
+const hederaServiceInstance = new HederaService();
+
+// Exporter les fonctions individuelles pour une utilisation plus simple
+export const submitMessageToHcs = (message: string) => hederaServiceInstance.submitToHCS(message);
+export const uploadFileToHfs = (fileContent: Buffer) => hederaServiceInstance.uploadToHFS(fileContent);
+export const createFungibleToken = (tokenName: string, tokenSymbol: string, initialSupply?: number) => 
+  hederaServiceInstance.createFungibleToken(tokenName, tokenSymbol);
+
+export const hederaService = hederaServiceInstance;

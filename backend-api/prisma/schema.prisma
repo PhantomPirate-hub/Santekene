@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -26,9 +26,16 @@ model User {
   patient        Patient?
   doctor         Doctor?
   admin          Admin?
+  superAdmin     SuperAdmin?
   sessions       Session[]
   auditLogs      AuditLog[]
+  notifications  Notification[]
+  sentMessages   Message[]      @relation("SentMessages")
+  receivedMessages Message[]    @relation("ReceivedMessages")
   avatar         String?        @default("https://i.pravatar.cc/100")
+  communityPosts CommunityPost[] @relation("CommunityPosts")
+  communityComments CommunityComment[] @relation("CommunityComments")
+  communityLikes CommunityLike[] @relation("CommunityLikes")
 }
 
 // Rôles utilisateur
@@ -36,6 +43,7 @@ enum Role {
   PATIENT
   MEDECIN
   ADMIN
+  SUPERADMIN
 }
 
 // Sessions / Tokens JWT
@@ -43,7 +51,7 @@ model Session {
   id        Int       @id @default(autoincrement())
   userId    Int
   user      User      @relation(fields: [userId], references: [id])
-  token     String    @unique
+  token     String    @unique @db.VarChar(500)
   createdAt DateTime  @default(now())
   expiresAt DateTime
 }
@@ -52,38 +60,53 @@ model Session {
 
 // Fiche Patient
 model Patient {
-  id            Int              @id @default(autoincrement())
-  userId        Int              @unique
-  user          User             @relation(fields: [userId], references: [id])
-  birthDate     DateTime?
-  gender        String?
-  bloodGroup    String?
-  allergies     Allergy[]
-  consultations Consultation[]
-  documents     Document[]
-  kenePoints    KenePoints[]
-  appointments  Appointment[]
+  id                Int                @id @default(autoincrement())
+  userId            Int                @unique
+  user              User               @relation(fields: [userId], references: [id])
+  birthDate         DateTime?
+  gender            String?
+  bloodGroup        String?
+  height            Float?             // Taille en cm
+  weight            Float?             // Poids en kg
+  location          String?            // Localité/Ville
+  allergies         Allergy[]
+  consultations     Consultation[]
+  documents         Document[]
+  kenePoints        KenePoints[]
+  appointments      Appointment[]
+  dseAccessRequests DseAccessRequest[] // Demandes d'accès à son DSE
 }
 
 // Allergies
+enum AllergySeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model Allergy {
-  id         Int      @id @default(autoincrement())
-  name       String
-  severity   String?
+  id         Int              @id @default(autoincrement())
+  allergen   String           // Nom de l'allergène (ex: Pénicilline, Arachides)
+  reaction   String           // Description de la réaction
+  severity   AllergySeverity  @default(MEDIUM)
   patientId  Int
-  patient    Patient  @relation(fields: [patientId], references: [id])
+  patient    Patient          @relation(fields: [patientId], references: [id])
 }
 
 // Médecin
 model Doctor {
-  id             Int              @id @default(autoincrement())
-  userId         Int              @unique
-  user           User             @relation(fields: [userId], references: [id])
-  speciality     String
-  licenseNumber  String?
-  consultations  Consultation[]
-  createdAt      DateTime         @default(now())
-  appointments   Appointment[]
+  id                Int                @id @default(autoincrement())
+  userId            Int                @unique
+  user              User               @relation(fields: [userId], references: [id])
+  speciality        String
+  licenseNumber     String?
+  structure         String?            // Nom de la structure de santé
+  location          String?            // Localité/Ville
+  phone             String?            // Contact direct du médecin
+  consultations     Consultation[]
+  createdAt         DateTime           @default(now())
+  appointments      Appointment[]
+  dseAccessRequests DseAccessRequest[] // Demandes d'accès aux DSE des patients
 }
 
 // Administrateur
@@ -91,23 +114,58 @@ model Admin {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique
   user      User     @relation(fields: [userId], references: [id])
+  centerId  Int?     // Pour gestion multi-centres
   createdAt DateTime @default(now())
+}
+
+// Super Administrateur
+model SuperAdmin {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  permissions String? // JSON des permissions spéciales
+  createdAt DateTime @default(now())
+}
+
+// Demande d'accès au DSE (Data Sharing Request)
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model DseAccessRequest {
+  id          Int                 @id @default(autoincrement())
+  doctorId    Int
+  patientId   Int
+  status      AccessRequestStatus @default(PENDING)
+  reason      String?             // Raison de la demande
+  expiresAt   DateTime?           // Date d'expiration de l'accès
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  doctor      Doctor              @relation(fields: [doctorId], references: [id])
+  patient     Patient             @relation(fields: [patientId], references: [id])
+  
+  @@unique([doctorId, patientId]) // Un médecin ne peut faire qu'une demande à la fois pour un patient
 }
 
 // Consultation médicale
 model Consultation {
-  id              Int        @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   patientId       Int
   doctorId        Int
-  diagnosis       String?
-  notes           String?
-  date            DateTime   @default(now())
+  diagnosis       String?        // Conclusion/Diagnostic
+  notes           String?        @db.Text // Notes de consultation (long texte)
+  allergies       String?        // Allergies détectées lors de la consultation
+  date            DateTime       @default(now())
   prescription    Prescription?
-  aiSummary       String?    // résumé généré par IA
-  triageScore     Float?     // score IA
-  blockchainTxId  String?    // identifiant Hedera (HCS/HTS)
-  patient         Patient    @relation(fields: [patientId], references: [id])
-  doctor          Doctor     @relation(fields: [doctorId], references: [id])
+  documents       Document[]     // Documents uploadés durant la consultation
+  aiSummary       String?        // résumé généré par IA
+  triageScore     Float?         // score IA
+  blockchainTxId  String?        // identifiant Hedera (HCS/HTS)
+  patient         Patient        @relation(fields: [patientId], references: [id])
+  doctor          Doctor         @relation(fields: [doctorId], references: [id])
 }
 
 // Ordonnance / Prescription
@@ -115,43 +173,66 @@ model Prescription {
   id              Int            @id @default(autoincrement())
   consultationId  Int            @unique
   consultation    Consultation   @relation(fields: [consultationId], references: [id])
-  medication      String
-  dosage          String
-  duration        String
+  medications     Medication[]   // Liste des médicaments
   issuedAt        DateTime       @default(now())
   nftTokenId      String?        // lien Hedera HTS
   hashOnChain     String?        // empreinte de vérification
 }
 
+// Médicaments d'une ordonnance
+model Medication {
+  id              Int            @id @default(autoincrement())
+  prescriptionId  Int
+  prescription    Prescription   @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  name            String         // Nom du médicament
+  dosage          String         // Dosage (ex: 500mg)
+  duration        String         // Durée (ex: 7 jours)
+  frequency       String?        // Fréquence (ex: 3 fois par jour)
+  instructions    String?        // Instructions particulières
+  createdAt       DateTime       @default(now())
+}
+
 // Documents médicaux (DSE)
 model Document {
-  id              Int        @id @default(autoincrement())
+  id              Int           @id @default(autoincrement())
   patientId       Int
+  consultationId  Int?          // Document lié à une consultation (optionnel)
   type            String
-  url             String      // lien HFS / MinIO / S3
+  url             String        // lien HFS / MinIO / S3
   hash            String
-  uploadedAt      DateTime    @default(now())
-  patient         Patient     @relation(fields: [patientId], references: [id])
+  title           String?       // Titre du document
+  uploadedAt      DateTime      @default(now())
+  patient         Patient       @relation(fields: [patientId], references: [id])
+  consultation    Consultation? @relation(fields: [consultationId], references: [id])
 }
 
 // Rendez-vous
 model Appointment {
-  id           Int        @id @default(autoincrement())
-  patientId    Int
-  doctorId     Int
-  date         DateTime
-  reason       String?
-  status       AppointmentStatus @default(PENDING)
-  createdAt    DateTime   @default(now())
-  patient      Patient    @relation(fields: [patientId], references: [id])
-  doctor       Doctor     @relation(fields: [doctorId], references: [id])
+  id             Int        @id @default(autoincrement())
+  patientId      Int
+  doctorId       Int
+  date           DateTime?  // Date/heure proposée par le médecin (nullable au départ)
+  type           String     @default("Consultation générale")
+  reason         String?
+  notes          String?
+  isVideo        Boolean    @default(false)
+  videoLink      String?
+  videoRoomId    String?    // ID unique de la room Jitsi pour sécurité
+  status         AppointmentStatus @default(PENDING)
+  rejectedReason String?    // Raison du refus par le médecin
+  acceptedAt     DateTime?  // Date d'acceptation par le médecin
+  rejectedAt     DateTime?  // Date de refus par le médecin
+  createdAt      DateTime   @default(now())
+  patient        Patient    @relation(fields: [patientId], references: [id])
+  doctor         Doctor     @relation(fields: [doctorId], references: [id])
 }
 
 enum AppointmentStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
+  PENDING      // En attente de validation médecin
+  CONFIRMED    // Accepté par le médecin
+  REJECTED     // Refusé par le médecin
+  CANCELLED    // Annulé par le patient
+  COMPLETED    // Consultation terminée
 }
 
 // ---------- ÉCONOMIE DU SYSTÈME ----------
@@ -178,4 +259,180 @@ model AuditLog {
   timestamp    DateTime  @default(now())
   hcsTxId      String?   // id transaction HCS
   details      String?
+}
+
+// ---------- NOTIFICATIONS & MESSAGES ----------
+
+// Notifications utilisateur
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String   @db.Text
+  type      NotificationType @default(INFO)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  SUCCESS
+  ERROR
+  APPOINTMENT
+  PRESCRIPTION
+  KENEPOINTS
+}
+
+// Messages (téléconsultation, chat)
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String   @db.Text
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+// ---------- COMMUNAUTÉ ----------
+
+// Posts de la communauté
+model CommunityPost {
+  id          Int                 @id @default(autoincrement())
+  authorId    Int
+  title       String
+  content     String              @db.Text
+  category    String              // Santé, Bien-être, Nutrition, Sport, Témoignage, Question
+  imageUrl    String?
+  published   Boolean             @default(true)
+  likesCount  Int                 @default(0)
+  commentsCount Int               @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  author      User                @relation("CommunityPosts", fields: [authorId], references: [id], onDelete: Cascade)
+  comments    CommunityComment[]
+  likes       CommunityLike[]
+}
+
+// Commentaires sur les posts
+model CommunityComment {
+  id        Int            @id @default(autoincrement())
+  postId    Int
+  authorId  Int
+  content   String         @db.Text
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  post      CommunityPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User           @relation("CommunityComments", fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+// Likes sur les posts
+model CommunityLike {
+  id        Int            @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  createdAt DateTime       @default(now())
+  post      CommunityPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User           @relation("CommunityLikes", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId]) // Un utilisateur ne peut liker qu'une fois par post
+}
+
+// ---------- E-LEARNING ----------
+
+// Cours e-learning
+model ELearningCourse {
+  id          Int           @id @default(autoincrement())
+  title       String
+  description String        @db.Text
+  content     String        @db.LongText
+  duration    Int           // en minutes
+  difficulty  String
+  category    String
+  imageUrl    String?
+  videoUrl    String?
+  pointsReward Int          @default(10)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  enrollments UserCourse[]
+  certifications NFTCertification[]
+}
+
+// Progression utilisateur dans un cours
+model UserCourse {
+  id           Int             @id @default(autoincrement())
+  userId       Int
+  courseId     Int
+  progress     Float           @default(0) // 0-100%
+  completed    Boolean         @default(false)
+  completedAt  DateTime?
+  startedAt    DateTime        @default(now())
+  course       ELearningCourse @relation(fields: [courseId], references: [id])
+  
+  @@unique([userId, courseId])
+}
+
+// NFT Certifications e-learning
+model NFTCertification {
+  id           Int             @id @default(autoincrement())
+  userId       Int
+  courseId     Int
+  nftTokenId   String          @unique
+  nftMetadata  String          @db.Text // JSON metadata
+  mintedAt     DateTime        @default(now())
+  txHash       String          // Hedera transaction hash
+  ipfsHash     String?         // IPFS metadata hash
+  course       ELearningCourse @relation(fields: [courseId], references: [id])
+}
+
+// ---------- BLOCKCHAIN / HEDERA ----------
+
+// Transactions Hedera (toutes HCS/HFS/HTS)
+model HederaTransaction {
+  id              Int      @id @default(autoincrement())
+  txId            String   @unique
+  type            HederaTransactionType
+  userId          Int?
+  entityId        Int?     // ID de l'entité concernée (consultation, prescription, etc.)
+  topicId         String?  // Pour HCS
+  fileId          String?  // Pour HFS
+  tokenId         String?  // Pour HTS
+  amount          Float?   // Pour transferts HTS
+  status          String   @default("PENDING")
+  consensusTimestamp String?
+  memo            String?  @db.Text
+  cost            Float?   // Coût en HBAR
+  createdAt       DateTime @default(now())
+  metadata        String?  @db.Text // JSON metadata
+}
+
+enum HederaTransactionType {
+  HCS_MESSAGE       // Message consensus service
+  HFS_UPLOAD        // File service upload
+  HFS_DOWNLOAD      // File service download
+  HTS_MINT_NFT      // Mint NFT (prescription, certification)
+  HTS_TRANSFER_NFT  // Transfer NFT
+  HTS_TRANSFER_FT   // Transfer fungible token (KènèPoints)
+  HTS_CREATE_TOKEN  // Create token
+}
+
+// ---------- CENTRES DE SANTÉ ----------
+
+// Centres de santé (multi-tenant)
+model HealthCenter {
+  id          Int      @id @default(autoincrement())
+  name        String
+  address     String
+  city        String
+  country     String
+  latitude    Float?
+  longitude   Float?
+  phone       String?
+  email       String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

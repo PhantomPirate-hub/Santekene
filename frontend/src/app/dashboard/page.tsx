@@ -39,6 +39,8 @@ export default function DashboardHomePage() {
       return <MedecinDashboardContent />;
     case 'ADMIN':
       return <AdminDashboardContent />;
+    case 'SUPERADMIN':
+      return <AdminDashboardContent />; // TODO: Créer SuperAdminDashboardContent
     default:
       return (
         <motion.div

@@ -2,16 +2,19 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
-// Le rôle vient de la BDD en majuscules (PATIENT, MEDECIN, ADMIN)
+// Le rôle vient de la BDD en majuscules (PATIENT, MEDECIN, ADMIN, SUPERADMIN)
 // On peut le garder en majuscules ou le transformer.
 // Pour la cohérence avec le backend, gardons-le en majuscules.
-export type UserRole = 'PATIENT' | 'MEDECIN' | 'ADMIN';
+export type UserRole = 'PATIENT' | 'MEDECIN' | 'ADMIN' | 'SUPERADMIN';
 
 // Définir le type pour l'utilisateur
 interface User {
   id: string;
   email: string;
   role: UserRole;
+  name?: string;
+  avatar?: string;
+  phone?: string;
 }
 
 // Définir le type pour le contexte d'authentification
@@ -20,6 +23,7 @@ interface AuthContextType {
   token: string | null;
   login: (userData: User, token: string) => void;
   logout: () => void;
+  updateUser: (userData: Partial<User>) => void;
   isAuthenticated: boolean;
   isLoading: boolean; // Pour gérer le chargement initial
 }
@@ -64,17 +68,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('user', JSON.stringify(formattedUser));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // Appeler l'API de déconnexion si un token existe
+    if (token) {
+      try {
+        await fetch('http://localhost:3001/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        console.log('Déconnexion serveur réussie');
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion serveur:', error);
+        // Continuer quand même avec la déconnexion locale
+      }
+    }
+
+    // Nettoyer l'état local
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Rediriger vers la page de connexion
+    window.location.href = '/login';
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    if (!user) return;
+
+    // Fusionner les nouvelles données avec l'utilisateur actuel
+    const updatedUser = {
+      ...user,
+      ...userData,
+    };
+
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isAuthenticated, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, isAuthenticated, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

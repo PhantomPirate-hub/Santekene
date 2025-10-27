@@ -1,7 +1,7 @@
 
 import { Router } from 'express';
-import { hederaController } from '../controllers/hedera.controller.ts';
-import { protect, authorize } from '../middleware/auth.middleware.ts';
+import { hederaController } from '../controllers/hedera.controller.js';
+import { protect, authorize } from '../middleware/auth.middleware.js';
 import { Role } from '@prisma/client';
 import multer from 'multer';
 

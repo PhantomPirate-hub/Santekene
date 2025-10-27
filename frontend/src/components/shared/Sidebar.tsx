@@ -17,7 +17,10 @@ import {
   User, 
   ShieldCheck, 
   Map, 
-  Award
+  Award,
+  Shield,
+  Calendar,
+  Bell
 } from 'lucide-react';
 import { useAuth, UserRole } from '@/context/AuthContext';
 
@@ -26,26 +29,27 @@ const navLinks = [
   // Commun
   { href: '/dashboard', label: 'Accueil', icon: LayoutDashboard, roles: ['PATIENT', 'MEDECIN', 'ADMIN'] },
   
-  // Patient
+  // Patient (ordre demandé)
   { href: '/dashboard/dse', label: 'Mon DSE', icon: FolderKanban, roles: ['PATIENT'] },
+  { href: '/dashboard/patient/prescriptions', label: 'Mes Ordonnances', icon: FileText, roles: ['PATIENT'] },
   { href: '/dashboard/patient/appointments', label: 'Mes RDV', icon: Users, roles: ['PATIENT'] },
-  { href: '/dashboard/map', label: 'Carte', icon: Map, roles: ['PATIENT', 'MEDECIN'] }, // Partagé
-  { href: '/dashboard/kenepoints', label: 'KènèPoints', icon: Award, roles: ['PATIENT'] },
+  { href: '/dashboard/patient/triage', label: 'IA Clinique', icon: BrainCircuit, roles: ['PATIENT'] },
+  { href: '/dashboard/patient/kenepoints', label: 'KènèPoints', icon: Award, roles: ['PATIENT'] },
+  { href: '/dashboard/map', label: 'Carte', icon: Map, roles: ['PATIENT', 'MEDECIN'] },
+  { href: '/dashboard/community', label: 'Communauté', icon: Users, roles: ['PATIENT', 'MEDECIN'] },
+  { href: '/dashboard/patient/dse-access', label: 'Demandes d\'accès', icon: Shield, roles: ['PATIENT'] },
 
   // Médecin
-  { href: '/dashboard/consultations', label: 'Consultations', icon: Stethoscope, roles: ['MEDECIN'] },
-  { href: '/dashboard/prescriptions', label: 'Ordonnances', icon: FileText, roles: ['MEDECIN'] },
-  { href: '/dashboard/stats', label: 'Statistiques', icon: BarChart3, roles: ['MEDECIN'] },
+  { href: '/dashboard/medecin/consultations', label: 'Consultations', icon: Stethoscope, roles: ['MEDECIN'] },
+  { href: '/dashboard/medecin/historique', label: 'Historique', icon: FileText, roles: ['MEDECIN'] },
+  { href: '/dashboard/medecin/rdv', label: 'Mes RDV', icon: Calendar, roles: ['MEDECIN'] },
+  { href: '/dashboard/medecin/notifications', label: 'Notifications', icon: Bell, roles: ['MEDECIN'] },
+  { href: '/dashboard/medecin/stats', label: 'Statistiques', icon: BarChart3, roles: ['MEDECIN'] },
 
   // Admin
   { href: '/dashboard/admin', label: 'Admin', icon: ShieldCheck, roles: ['ADMIN'] },
   { href: '/dashboard/users', label: 'Utilisateurs', icon: Users, roles: ['ADMIN'] },
   { href: '/dashboard/monitoring', label: 'Monitoring', icon: AreaChart, roles: ['ADMIN'] },
-
-  // Exemples de la demande initiale (à affiner)
-  { href: '/dashboard/community', label: 'Communauté', icon: Users, roles: ['PATIENT', 'MEDECIN'] },
-  { href: '/dashboard/ai', label: 'IA Clinique', icon: BrainCircuit, roles: ['PATIENT', 'MEDECIN'] },
-  { href: '/dashboard/elearning', label: 'E-learning', icon: GraduationCap, roles: ['PATIENT', 'MEDECIN'] },
 ];
 
 const Sidebar = () => {
@@ -71,13 +75,13 @@ const Sidebar = () => {
   }
 
   return (
-    <aside className="w-64 bg-blanc-pur border-r border-border flex flex-col">
-      <div className="p-6 border-b border-border">
+    <aside className="w-64 bg-blanc-pur border-r border-border flex flex-col h-screen">
+      <div className="p-6 border-b border-border flex-shrink-0">
         <Link href="/dashboard">
-          <img src="/assets/logo.png" alt="Santé Kènè Logo" className="h-12 mx-auto" />
+          <img src="/assets/logo.png" alt="Santé Kènè Logo" className="h-20 mx-auto" />
         </Link>
       </div>
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {filteredNavLinks.map((link) => {
           const isActive = pathname === link.href || (link.href !== '/dashboard' && pathname.startsWith(link.href));
           return (
@@ -97,7 +101,7 @@ const Sidebar = () => {
           );
         })}
       </nav>
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border flex-shrink-0">
          <Link
             href="/dashboard/settings"
             className={cn(

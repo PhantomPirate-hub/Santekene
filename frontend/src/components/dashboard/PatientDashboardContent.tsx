@@ -27,7 +27,7 @@ const itemVariants = {
 
 export default function PatientDashboardContent() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const handleAuditAction = async () => {
     try {
@@ -46,7 +46,7 @@ export default function PatientDashboardContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Erreur lors de l'audit');
+        throw new Error(data.message || 'Erreur lors de l\'audit');
       }
 
       alert(`Action auditée avec succès ! Transaction ID: ${data.transactionId}`);
@@ -63,17 +63,16 @@ export default function PatientDashboardContent() {
       className="space-y-8"
     >
       <div className="flex justify-between items-start">
-        <motion.h1 variants={itemVariants} className="text-3xl font-bold text-texte-principal">Bonjour [Prénom], prenez soin de votre santé avec Santé Kènè 🌿</motion.h1>
+        <motion.h1 variants={itemVariants} className="text-3xl font-bold text-texte-principal">
+          Bonjour {user?.name || 'Utilisateur'}, prenez soin de votre santé avec Santé Kènè 🌿
+        </motion.h1>
         <motion.div variants={itemVariants}>
           <WalletConnectButton />
         </motion.div>
       </div>
       
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        <div className="lg:col-span-2">
-          <HealthProfileWidget />
-        </div>
-        <StatsWidget />
+      <motion.div variants={itemVariants} className="mb-8">
+        <HealthProfileWidget />
       </motion.div>
 
       <motion.div variants={itemVariants}>
@@ -86,7 +85,7 @@ export default function PatientDashboardContent() {
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <Shortcut
           icon={<Calendar className="w-12 h-12 text-bleu-clair" />}
-          title="Prendre rendez-vous"
+          title="Voir mes rendez-vous"
           emoji="📅"
           onClick={() => router.push('/dashboard/patient/appointments')}
         />
@@ -112,7 +111,7 @@ export default function PatientDashboardContent() {
           icon={<HeartPulse className="w-12 h-12 text-bleu-clair" />}
           title="Mon Dossier Médical (DSE)"
           emoji="❤️"
-          onClick={() => router.push('/dashboard/dse/123')}
+          onClick={() => router.push('/dashboard/dse')}
         />
       </motion.div>
     </motion.div>

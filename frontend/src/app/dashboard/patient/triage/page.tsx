@@ -30,7 +30,10 @@ export default function PatientTriagePage() {
       animate="visible"
       className="space-y-8"
     >
-      <motion.h1 variants={itemVariants} className="text-3xl font-bold text-nuit-confiance">Triage Intelligent par IA</motion.h1>
+      <motion.div variants={itemVariants} className="text-center mb-4">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">🤖 Analyse IA de vos symptômes</h1>
+        <p className="text-lg text-gray-600">Décrivez vos symptômes et recevez des recommandations personnalisées</p>
+      </motion.div>
       
       <motion.div variants={itemVariants}>
         <AITriageForm setTriageResults={setTriageResults} />

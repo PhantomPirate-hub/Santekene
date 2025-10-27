@@ -33,14 +33,24 @@ export const HashConnectProvider = ({ children }: { children: ReactNode }) => {
   // Initialisation de HashConnect
   useEffect(() => {
     const initializeHashConnect = async () => {
-      const hc = new HashConnect(true); // true pour le mode debug
+      try {
+        const hc = new HashConnect(true); // true pour le mode debug
 
-      hc.stateChangedEvent.on(state => setConnectionState(state));
-      hc.pairingEvent.on(data => setPairingData(data));
-      // hc.connectionStatusChangeEvent.on(state => setConnectionState(state)); // Ancien event, stateChangedEvent est préféré
+        // Vérifier que les événements existent avant de les utiliser
+        if (hc.stateChangedEvent && typeof hc.stateChangedEvent.on === 'function') {
+          hc.stateChangedEvent.on(state => setConnectionState(state));
+        }
+        
+        if (hc.pairingEvent && typeof hc.pairingEvent.on === 'function') {
+          hc.pairingEvent.on(data => setPairingData(data));
+        }
 
-      await hc.init(appMetadata, 'testnet', false);
-      setHashconnect(hc);
+        await hc.init(appMetadata, 'testnet', false);
+        setHashconnect(hc);
+      } catch (error) {
+        console.warn('HashConnect non disponible ou non configuré:', error);
+        // HashConnect est optionnel, l'application peut fonctionner sans
+      }
     };
 
     initializeHashConnect();
