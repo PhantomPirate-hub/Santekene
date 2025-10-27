@@ -84,44 +84,57 @@ const InteractiveMap = () => {
   const [healthCenters, setHealthCenters] = useState<HealthCenter[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCenter, setSelectedCenter] = useState<HealthCenter | null>(null);
+  const [searchRadius, setSearchRadius] = useState(100); // Rayon par défaut : 100 km
 
   const { data: geoData, getLocation, loading: geoLoading } = useGeolocation();
 
-  // Récupérer tous les centres au chargement
+  // Demander la géolocalisation automatiquement au chargement
   useEffect(() => {
-    fetchHealthCenters();
+    getLocation();
   }, []);
 
-  // Mettre à jour la position quand la géolocalisation est disponible
+  // Mettre à jour la position et charger les centres quand la géolocalisation est disponible
   useEffect(() => {
     if (geoData) {
       setPosition([geoData.latitude, geoData.longitude]);
-      // Récupérer les centres avec distances
+      // Récupérer les centres avec distances (utilise le rayon défini)
       fetchHealthCenters(geoData.latitude, geoData.longitude);
     }
-  }, [geoData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geoData, searchRadius]); // Relancer la recherche si le rayon change
 
   const fetchHealthCenters = async (lat?: number, lon?: number, search?: string) => {
+    // Ne pas chercher si on n'a pas de position
+    if (lat === undefined || lon === undefined) {
+      console.log('⚠️ Géolocalisation requise pour charger les centres de santé');
+      return;
+    }
+
     setLoading(true);
     try {
       const params = new URLSearchParams();
+      params.append('lat', lat.toString());
+      params.append('lon', lon.toString());
+      params.append('radius', searchRadius.toString()); // Rayon en km
       if (search) params.append('search', search);
-      if (lat !== undefined && lon !== undefined) {
-        params.append('lat', lat.toString());
-        params.append('lon', lon.toString());
-      }
       params.append('limit', '50');
+
+      console.log(`🌍 Recherche centres autour de [${lat}, ${lon}] dans un rayon de ${searchRadius}km${search ? ` - Recherche: "${search}"` : ''}`);
 
       const response = await fetch(`http://localhost:3001/api/healthcenters?${params.toString()}`);
       
       if (response.ok) {
         const data = await response.json();
+        console.log(`✅ ${data.length} centres reçus depuis OpenStreetMap`);
         setHealthCenters(data);
       } else {
-        console.error('Erreur lors de la récupération des centres de santé');
+        const errorData = await response.json();
+        console.error('❌ Erreur API:', errorData);
+        alert(errorData.message || 'Erreur lors de la récupération des centres de santé');
       }
-    } catch (error) {
-      console.error('Erreur:', error);
+    } catch (error: any) {
+      console.error('❌ Erreur réseau:', error);
+      alert('Impossible de charger les centres de santé. Vérifiez votre connexion.');
     } finally {
       setLoading(false);
     }
@@ -132,7 +145,7 @@ const InteractiveMap = () => {
     if (geoData) {
       fetchHealthCenters(geoData.latitude, geoData.longitude, searchQuery);
     } else {
-      fetchHealthCenters(undefined, undefined, searchQuery);
+      alert('Veuillez activer votre géolocalisation pour rechercher des centres de santé');
     }
   };
 
@@ -180,6 +193,55 @@ const InteractiveMap = () => {
               <LocateFixed className="w-4 h-4 mr-2" />
               {geoLoading ? 'Localisation...' : 'Utiliser ma position'}
             </Button>
+            
+            {/* Sélecteur de rayon de recherche */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-texte-principal">
+                Rayon de recherche : {searchRadius} km
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSearchRadius(25)}
+                  className={`flex-1 py-1.5 px-2 text-xs rounded transition-colors ${
+                    searchRadius === 25
+                      ? 'bg-bleu-clair text-blanc-pur'
+                      : 'bg-gray-100 text-texte-principal hover:bg-gray-200'
+                  }`}
+                >
+                  25 km
+                </button>
+                <button
+                  onClick={() => setSearchRadius(50)}
+                  className={`flex-1 py-1.5 px-2 text-xs rounded transition-colors ${
+                    searchRadius === 50
+                      ? 'bg-bleu-clair text-blanc-pur'
+                      : 'bg-gray-100 text-texte-principal hover:bg-gray-200'
+                  }`}
+                >
+                  50 km
+                </button>
+                <button
+                  onClick={() => setSearchRadius(100)}
+                  className={`flex-1 py-1.5 px-2 text-xs rounded transition-colors ${
+                    searchRadius === 100
+                      ? 'bg-bleu-clair text-blanc-pur'
+                      : 'bg-gray-100 text-texte-principal hover:bg-gray-200'
+                  }`}
+                >
+                  100 km
+                </button>
+                <button
+                  onClick={() => setSearchRadius(200)}
+                  className={`flex-1 py-1.5 px-2 text-xs rounded transition-colors ${
+                    searchRadius === 200
+                      ? 'bg-bleu-clair text-blanc-pur'
+                      : 'bg-gray-100 text-texte-principal hover:bg-gray-200'
+                  }`}
+                >
+                  200 km
+                </button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -282,15 +344,16 @@ const InteractiveMap = () => {
                   </div>
                 </Popup>
               </Marker>
-              {/* Cercle autour de la position de l'utilisateur */}
+              {/* Cercle autour de la position de l'utilisateur (zone de recherche) */}
               <Circle
                 center={[geoData.latitude, geoData.longitude]}
-                radius={5000} // 5km
+                radius={searchRadius * 1000} // Convertir km en mètres
                 pathOptions={{ 
                   color: '#3b82f6', 
                   fillColor: '#3b82f6',
-                  fillOpacity: 0.1,
-                  weight: 2 
+                  fillOpacity: 0.08,
+                  weight: 2,
+                  dashArray: '5, 10' // Ligne pointillée pour la zone de recherche
                 }}
               />
             </>

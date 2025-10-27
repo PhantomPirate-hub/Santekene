@@ -189,7 +189,7 @@ const PatientPrescriptionsPage = () => {
                       <CardDescription className="flex items-center gap-4 text-base">
                         <span className="flex items-center gap-1">
                           <User className="w-4 h-4" />
-                          Dr. {prescription.doctor.name} - {prescription.doctor.specialty}
+                          {prescription.doctor.name} - {prescription.doctor.specialty}
                         </span>
                       </CardDescription>
                     </div>

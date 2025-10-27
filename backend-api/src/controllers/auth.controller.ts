@@ -7,13 +7,52 @@ import { z } from 'zod';
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // À remplacer par une variable d'environnement forte
 
-// Schémas de validation Zod
-const registerSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+// Schémas de validation Zod pour chaque type d'utilisateur
+const patientRegisterSchema = z.object({
+  role: z.literal('PATIENT'),
+  name: z.string().min(2, "Le nom complet doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
+  phone: z.string().min(8, "Le numéro de téléphone doit contenir au moins 8 caractères"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-  role: z.enum(['PATIENT', 'MEDECIN', 'ADMIN']).optional(),
-  phone: z.string().optional(),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
+const medecinRegisterSchema = z.object({
+  role: z.literal('MEDECIN'),
+  name: z.string().min(2, "Le nom complet doit contenir au moins 2 caractères"),
+  email: z.string().email("Email invalide"),
+  phone: z.string().min(8, "Le numéro de téléphone doit contenir au moins 8 caractères"),
+  speciality: z.string().min(2, "La fonction/spécialité est requise"),
+  facilityId: z.number({ invalid_type_error: "Vous devez sélectionner un établissement" }).int().positive("Vous devez sélectionner un établissement"),
+  location: z.string().min(2, "La résidence est requise"),
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
+});
+
+const adminRegisterSchema = z.object({
+  role: z.literal('ADMIN'),
+  // Informations de la structure
+  facilityName: z.string().min(2, "Le nom de la structure est requis"),
+  facilityType: z.string().min(2, "Le type de structure est requis"),
+  facilityCity: z.string().min(2, "La localité de la structure est requise"),
+  facilityPhone: z.string().min(8, "Le contact de la structure est requis"),
+  documentUrl: z.string().optional().nullable(), // URL base64 ou lien vers le document (optionnel)
+  documentType: z.string().optional(),
+  // Informations du responsable
+  responsibleName: z.string().min(2, "Le nom complet du responsable est requis"),
+  responsibleEmail: z.string().email("Email du responsable invalide"),
+  responsiblePhone: z.string().min(8, "Le contact du responsable est requis"),
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Les mots de passe ne correspondent pas",
+  path: ["confirmPassword"],
 });
 
 const loginSchema = z.object({
@@ -22,92 +61,291 @@ const loginSchema = z.object({
 });
 
 /**
- * Inscription d'un nouvel utilisateur
+ * Récupérer les structures de santé approuvées
  */
-export const register = async (req: Request, res: Response) => {
+export const getApprovedFacilities = async (req: Request, res: Response) => {
   try {
-    // Validation des données
-    const validatedData = registerSchema.parse(req.body);
-    const { name, email, password, role, phone } = validatedData;
-
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return res.status(400).json({ error: 'Un utilisateur avec cet email existe déjà.' });
-    }
-
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Créer l'utilisateur
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: (role as Role) || Role.PATIENT,
-        phone,
-        isVerified: false,
+    const facilities = await prisma.healthFacilityRequest.findMany({
+      where: {
+        status: 'APPROVED',
+      },
+      select: {
+        id: true,
+        facilityName: true,
+        facilityType: true,
+        facilityCity: true,
+      },
+      orderBy: {
+        facilityName: 'asc',
       },
     });
 
-    // Créer automatiquement le profil associé selon le rôle
-    if (user.role === Role.PATIENT) {
+    return res.status(200).json({ facilities });
+  } catch (error) {
+    console.error('❌ Erreur récupération structures:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: (error as Error).message });
+  }
+};
+
+/**
+ * Inscription d'un nouvel utilisateur (Patient, Médecin ou Admin)
+ */
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { role } = req.body;
+
+    // Sélectionner le schéma de validation approprié
+    let validatedData: any;
+    
+    if (role === 'PATIENT') {
+      validatedData = patientRegisterSchema.parse(req.body);
+    } else if (role === 'MEDECIN') {
+      validatedData = medecinRegisterSchema.parse(req.body);
+    } else if (role === 'ADMIN') {
+      validatedData = adminRegisterSchema.parse(req.body);
+    } else {
+      return res.status(400).json({ error: 'Rôle invalide. Choisissez PATIENT, MEDECIN ou ADMIN.' });
+    }
+
+    // === INSCRIPTION PATIENT ===
+    if (role === 'PATIENT') {
+      const { name, email, phone, password } = validatedData;
+
+      // Vérifier si l'email existe déjà
+      const existingEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingEmail) {
+        return res.status(400).json({ error: 'Un utilisateur avec cet email existe déjà.' });
+      }
+
+      // Vérifier si le téléphone existe déjà
+      const existingPhone = await prisma.user.findUnique({ where: { phone } });
+      if (existingPhone) {
+        return res.status(400).json({ error: 'Ce numéro de téléphone est déjà utilisé.' });
+      }
+
+      // Hasher le mot de passe
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Créer l'utilisateur patient (isVerified = true pour patient)
+      const user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          phone,
+          password: hashedPassword,
+          role: Role.PATIENT,
+          isVerified: true, // Patient peut se connecter immédiatement
+        },
+      });
+
+      // Créer le profil patient
       await prisma.patient.create({
         data: {
           userId: user.id,
         },
       });
-    } else if (user.role === Role.MEDECIN) {
+
+      // Créer un token JWT
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      // Créer une session
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await prisma.session.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt,
+        },
+      });
+
+      const { password: _, ...userWithoutPassword } = user;
+      return res.status(201).json({
+        message: 'Compte patient créé avec succès ! Vous pouvez compléter votre profil dans les paramètres.',
+        user: userWithoutPassword,
+        token,
+      });
+    }
+
+    // === INSCRIPTION MÉDECIN ===
+    if (role === 'MEDECIN') {
+      const { name, email, phone, password, speciality, facilityId, location } = validatedData;
+
+      // Vérifier si l'email existe déjà
+      const existingEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingEmail) {
+        return res.status(400).json({ error: 'Un utilisateur avec cet email existe déjà.' });
+      }
+
+      // Vérifier si le téléphone existe déjà
+      const existingPhone = await prisma.user.findUnique({ where: { phone } });
+      if (existingPhone) {
+        return res.status(400).json({ error: 'Ce numéro de téléphone est déjà utilisé.' });
+      }
+
+      // Vérifier que la structure existe et est approuvée
+      const facility = await prisma.healthFacilityRequest.findUnique({
+        where: { id: facilityId },
+      });
+
+      if (!facility) {
+        return res.status(400).json({ error: 'Structure non trouvée.' });
+      }
+
+      if (facility.status !== 'APPROVED') {
+        return res.status(400).json({ error: 'Cette structure n\'est pas encore approuvée.' });
+      }
+
+      // Hasher le mot de passe
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Créer l'utilisateur médecin (isVerified = false, doit être validé par admin)
+      const user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          phone,
+          password: hashedPassword,
+          role: Role.MEDECIN,
+          isVerified: false, // Médecin doit être validé par un admin
+        },
+      });
+
+      // Créer le profil médecin lié à la structure
       await prisma.doctor.create({
         data: {
           userId: user.id,
-          speciality: 'Médecine générale', // Par défaut, à modifier plus tard
+          speciality,
+          facilityId,
+          structure: facility.facilityName, // Garder aussi le nom en fallback
+          location,
+          phone,
         },
       });
-    } else if (user.role === Role.ADMIN) {
-      await prisma.admin.create({
-        data: {
-          userId: user.id,
-        },
+
+      return res.status(201).json({
+        message: `Votre demande d'inscription à ${facility.facilityName} a été soumise avec succès. Vous recevrez un email une fois votre compte validé par l'administrateur.`,
+        requiresValidation: true,
+        facilityName: facility.facilityName,
       });
     }
 
-    // Créer un token JWT
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
+    // === INSCRIPTION ADMIN (Représentant de structure) ===
+    if (role === 'ADMIN') {
+      console.log('🏥 Début inscription Admin...');
+      const {
+        facilityName,
+        facilityType,
+        facilityCity,
+        facilityPhone,
+        documentUrl,
+        documentType,
+        responsibleName,
+        responsibleEmail,
+        responsiblePhone,
+        password,
+      } = validatedData;
 
-    // Créer une session dans la base de données
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 jours
+      console.log(`📝 Données reçues - Structure: ${facilityName}, Responsable: ${responsibleName}`);
 
-    await prisma.session.create({
-      data: {
-        userId: user.id,
-        token,
-        expiresAt,
-      },
-    });
+      // Vérifier si l'email du responsable existe déjà
+      const existingEmail = await prisma.user.findUnique({ where: { email: responsibleEmail } });
+      if (existingEmail) {
+        return res.status(400).json({ error: 'Un utilisateur avec cet email existe déjà.' });
+      }
 
-    // Retourner l'utilisateur (sans le mot de passe) et le token
-    const { password: _, ...userWithoutPassword } = user;
-    return res.status(201).json({
-      message: 'Utilisateur créé avec succès',
-      user: userWithoutPassword,
-      token,
-    });
+      // Vérifier si le téléphone du responsable existe déjà
+      const existingPhone = await prisma.user.findUnique({ where: { phone: responsiblePhone } });
+      if (existingPhone) {
+        return res.status(400).json({ error: 'Ce numéro de téléphone est déjà utilisé.' });
+      }
+
+      // Vérifier si l'email de la structure existe déjà
+      const existingFacilityEmail = await prisma.healthFacilityRequest.findUnique({
+        where: { facilityEmail: responsibleEmail },
+      });
+      if (existingFacilityEmail) {
+        return res.status(400).json({ error: 'Cette structure a déjà soumis une demande.' });
+      }
+
+      try {
+        // Hasher le mot de passe
+        const hashedPassword = await bcrypt.hash(password, 10);
+        console.log('✅ Mot de passe hashé');
+
+        // Créer l'utilisateur admin (isVerified = false, doit être validé par super admin)
+        const user = await prisma.user.create({
+          data: {
+            name: responsibleName,
+            email: responsibleEmail,
+            phone: responsiblePhone,
+            password: hashedPassword,
+            role: Role.ADMIN,
+            isVerified: false, // Admin doit être validé par un super admin
+          },
+        });
+        console.log(`✅ Utilisateur admin créé - ID: ${user.id}`);
+
+        // Créer la demande de structure de santé
+        const facilityRequest = await prisma.healthFacilityRequest.create({
+          data: {
+            facilityName,
+            facilityType,
+            facilityAddress: `${facilityCity}`, // On utilise la ville comme adresse pour l'instant
+            facilityCity,
+            facilityPhone,
+            facilityEmail: responsibleEmail, // Email de la structure = email du responsable
+            responsibleName,
+            responsiblePosition: 'Représentant', // Par défaut
+            responsiblePhone,
+            responsibleEmail,
+            documentUrl: documentUrl || null,
+            documentType: documentType || 'Document de validation',
+            status: 'PENDING',
+          },
+        });
+        console.log(`✅ Demande de structure créée - ID: ${facilityRequest.id}`);
+
+        // Créer le profil admin lié à la demande
+        const admin = await prisma.admin.create({
+          data: {
+            userId: user.id,
+            facilityRequestId: facilityRequest.id,
+          },
+        });
+        console.log(`✅ Profil admin créé et lié à la structure - Admin ID: ${admin.id}`);
+
+        return res.status(201).json({
+          message: 'Votre demande d\'inscription de structure a été soumise avec succès. Un Super Admin examinera votre demande et vous recevrez un email une fois validée.',
+          requiresValidation: true,
+          facilityRequestId: facilityRequest.id,
+          userId: user.id,
+        });
+      } catch (error) {
+        console.error('❌ Erreur détaillée lors de la création Admin/Structure:', error);
+        
+        // Si on a créé l'utilisateur mais pas la structure, on peut essayer de nettoyer
+        // (optionnel, selon votre stratégie)
+        
+        throw error; // Relancer pour la gestion globale
+      }
+    }
+
+    return res.status(400).json({ error: 'Rôle non reconnu.' });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Données invalides', details: error.errors });
+      return res.status(400).json({ 
+        error: 'Données invalides', 
+        details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })) 
+      });
     }
-    console.error('Erreur lors de l\'inscription:', error);
-    return res.status(500).json({ error: 'Erreur serveur lors de l\'inscription.' });
+    console.error('❌ Erreur lors de l\'inscription:', error);
+    return res.status(500).json({ error: 'Erreur serveur lors de l\'inscription.', details: (error as Error).message });
   }
 };
 
@@ -133,6 +371,11 @@ export const login = async (req: Request, res: Response) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
+    }
+
+    // Vérifier si le compte est actif (vérifié)
+    if (!user.isVerified) {
+      return res.status(403).json({ error: 'Votre compte a été désactivé. Veuillez contacter l\'administrateur.' });
     }
 
     // Créer un token JWT

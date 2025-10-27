@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 const auditLogs = [
-  { id: 1, user: 'Dr. Dupont', action: 'Consultation DSE', module: 'DSE', date: '2025-10-12 10:30:00' },
+  { id: 1, user: 'Pr. Dupont', action: 'Consultation DSE', module: 'DSE', date: '2025-10-12 10:30:00' },
   { id: 2, user: 'Admin', action: 'Modification rôle utilisateur', module: 'Gestion Utilisateurs', date: '2025-10-12 09:15:00' },
   { id: 3, user: 'Patient Amina', action: 'Accès DSE', module: 'DSE', date: '2025-10-12 08:00:00' },
   { id: 4, user: 'Dr. Dupont', action: 'Analyse IA', module: 'IA Clinique', date: '2025-10-11 16:45:00' },

@@ -134,7 +134,7 @@ export default function MedecinDashboardPage() {
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <h1 className="text-3xl font-bold">
-                      Dr. {doctorProfile?.name || user?.name || 'Médecin'}
+                      {doctorProfile?.name || user?.name || 'Médecin'}
                     </h1>
                     <Badge className="bg-white/20 text-white border-white/30">
                       <Award className="w-3 h-3 mr-1" />

@@ -100,7 +100,9 @@ model Doctor {
   user              User               @relation(fields: [userId], references: [id])
   speciality        String
   licenseNumber     String?
-  structure         String?            // Nom de la structure de santé
+  structure         String?            // Nom de la structure de santé (fallback)
+  facilityId        Int?               // Lien vers la structure validée
+  facility          HealthFacilityRequest? @relation("DoctorFacility", fields: [facilityId], references: [id])
   location          String?            // Localité/Ville
   phone             String?            // Contact direct du médecin
   consultations     Consultation[]
@@ -111,11 +113,13 @@ model Doctor {
 
 // Administrateur
 model Admin {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  user      User     @relation(fields: [userId], references: [id])
-  centerId  Int?     // Pour gestion multi-centres
-  createdAt DateTime @default(now())
+  id                   Int                    @id @default(autoincrement())
+  userId               Int                    @unique
+  user                 User                   @relation(fields: [userId], references: [id])
+  facilityRequestId    Int?                   @unique // Lien avec la demande de structure
+  facilityRequest      HealthFacilityRequest? @relation("AdminFacilityRequest", fields: [facilityRequestId], references: [id])
+  centerId             Int?                   // Pour gestion multi-centres
+  createdAt            DateTime               @default(now())
 }
 
 // Super Administrateur
@@ -125,6 +129,49 @@ model SuperAdmin {
   user      User     @relation(fields: [userId], references: [id])
   permissions String? // JSON des permissions spéciales
   createdAt DateTime @default(now())
+  approvedFacilities HealthFacilityRequest[] @relation("ApprovedBy")
+}
+
+// Demande d'inscription de structure de santé (hôpitaux, cliniques)
+model HealthFacilityRequest {
+  id                    Int      @id @default(autoincrement())
+  facilityName          String   // Nom de la structure
+  facilityType          String   // Type: Hôpital, Clinique, Centre de santé
+  facilityAddress       String   // Adresse physique
+  facilityCity          String   // Ville
+  facilityPhone         String   // Téléphone de la structure
+  facilityEmail         String   @unique // Email de la structure
+  
+  responsibleName       String   // Nom du responsable
+  responsiblePosition   String   // Fonction du responsable
+  responsiblePhone      String   // Contact du responsable
+  responsibleEmail      String   // Email du responsable
+  
+  documentUrl           String?  @db.LongText // URL du document de validation (scan en base64)
+  documentType          String?  // Type: Agrément, Licence, etc.
+  
+  status                FacilityRequestStatus @default(PENDING)
+  rejectionReason       String?  // Motif de refus
+  
+  approvedBy            Int?     // ID du SuperAdmin qui a approuvé
+  approvedBySuperAdmin  SuperAdmin? @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  approvedAt            DateTime?
+  rejectedAt            DateTime?
+  
+  admin                 Admin?   @relation("AdminFacilityRequest") // Lien avec l'Admin qui a créé cette demande
+  doctors               Doctor[] @relation("DoctorFacility") // Médecins appartenant à cette structure
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@index([status])
+  @@index([facilityEmail])
+}
+
+enum FacilityRequestStatus {
+  PENDING    // En attente de validation
+  APPROVED   // Approuvée
+  REJECTED   // Refusée
 }
 
 // Demande d'accès au DSE (Data Sharing Request)

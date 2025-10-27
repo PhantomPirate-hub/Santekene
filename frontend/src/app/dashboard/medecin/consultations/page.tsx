@@ -197,7 +197,7 @@ export default function MedecinConsultationsPage() {
             <div className="flex-1">
               <Input
                 type="tel"
-                placeholder="Numéro de téléphone du patient"
+                placeholder="+223 76 12 34 56"
                 value={phoneSearch}
                 onChange={(e) => setPhoneSearch(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}

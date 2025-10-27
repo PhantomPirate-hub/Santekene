@@ -136,7 +136,7 @@ export default function MedecinDashboardContent() {
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
                     <h1 className="text-3xl font-bold text-texte-principal">
-                      Dr. {doctorProfile?.name || user?.name || 'Médecin'}
+                      {doctorProfile?.name || user?.name || 'Médecin'}
                     </h1>
                     <Badge className="bg-bleu-clair text-white border-bleu-clair">
                       <Award className="w-3 h-3 mr-1" />

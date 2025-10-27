@@ -690,7 +690,7 @@ export default function MedecinDsePage() {
                             {consultation.allergies}
                           </p>
                           <p className="text-sm text-texte-principal/60 mt-2">
-                            Détecté par Dr. {consultation.doctor.user.name}
+                            Détecté par {consultation.doctor.user.name}
                           </p>
                         </div>
                       </div>
@@ -722,7 +722,7 @@ export default function MedecinDsePage() {
                       <Badge>{consultation.diagnosis || 'Diagnostic non spécifié'}</Badge>
                     </div>
                     <CardDescription>
-                      Par Dr. {consultation.doctor.user.name}
+                      Par {consultation.doctor.user.name}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">

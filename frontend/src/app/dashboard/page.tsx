@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import PatientDashboardContent from '@/components/dashboard/PatientDashboardContent';
@@ -18,6 +20,18 @@ const containerVariants = {
 
 export default function DashboardHomePage() {
   const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Rediriger les super admins vers leur dashboard dédié
+    if (isAuthenticated && user?.role === 'SUPERADMIN') {
+      router.push('/dashboard/superadmin');
+    }
+    // Rediriger les admins vers leur dashboard dédié
+    if (isAuthenticated && user?.role === 'ADMIN') {
+      router.push('/dashboard/admin');
+    }
+  }, [isAuthenticated, user, router]);
 
   if (!isAuthenticated) {
     return (
@@ -38,9 +52,11 @@ export default function DashboardHomePage() {
     case 'MEDECIN':
       return <MedecinDashboardContent />;
     case 'ADMIN':
-      return <AdminDashboardContent />;
+      // Redirection gérée par useEffect vers /dashboard/admin
+      return null;
     case 'SUPERADMIN':
-      return <AdminDashboardContent />; // TODO: Créer SuperAdminDashboardContent
+      // Redirection gérée par useEffect vers /dashboard/superadmin
+      return null;
     default:
       return (
         <motion.div

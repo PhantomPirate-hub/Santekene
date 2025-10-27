@@ -1,537 +1,447 @@
 import { Request, Response } from 'express';
 import { prisma } from '../services/prisma.service.js';
-import { Role } from '@prisma/client';
-import bcrypt from 'bcrypt';
 
 /**
- * Contrôleur pour les fonctionnalités d'administration
+ * Récupérer les statistiques de la structure de l'admin
  */
-
-/**
- * Créer un nouvel utilisateur (CRUD - Admin/SuperAdmin)
- */
-export const createUser = async (req: Request, res: Response) => {
-  try {
-    const { email, password, name, phone, role, profileData } = req.body;
-
-    // Validation
-    if (!email || !password || !name || !role) {
-      return res.status(400).json({
-        error: 'Email, mot de passe, nom et rôle sont requis',
-      });
-    }
-
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return res.status(400).json({ error: 'Cet email est déjà utilisé' });
-    }
-
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Créer l'utilisateur
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        phone: phone || null,
-        role: role as Role,
-      },
-    });
-
-    // Créer le profil spécifique selon le rôle
-    let profile = null;
-
-    if (role === Role.PATIENT) {
-      profile = await prisma.patient.create({
-        data: {
-          userId: user.id,
-          dateOfBirth: profileData?.dateOfBirth ? new Date(profileData.dateOfBirth) : null,
-          gender: profileData?.gender || null,
-          bloodGroup: profileData?.bloodGroup || null,
-          address: profileData?.address || null,
-          city: profileData?.city || null,
-          country: profileData?.country || null,
-        },
-      });
-    } else if (role === Role.MEDECIN) {
-      profile = await prisma.doctor.create({
-        data: {
-          userId: user.id,
-          speciality: profileData?.speciality || 'Médecine Générale',
-          licenseNumber: profileData?.licenseNumber || null,
-        },
-      });
-    } else if (role === Role.ADMIN) {
-      profile = await prisma.admin.create({
-        data: {
-          userId: user.id,
-          department: profileData?.department || null,
-          accessLevel: profileData?.accessLevel || 1,
-        },
-      });
-    } else if (role === Role.SUPERADMIN) {
-      profile = await prisma.superAdmin.create({
-        data: {
-          userId: user.id,
-          permissions: profileData?.permissions || 'ALL',
-        },
-      });
-    }
-
-    const currentUser = (req as any).user;
-
-    // Enregistrer dans les logs d'audit
-    await prisma.auditLog.create({
-      data: {
-        action: 'CREATE_USER',
-        userId: currentUser.id,
-        details: `Utilisateur créé: ${email} (${role})`,
-      },
-    });
-
-    return res.status(201).json({
-      message: 'Utilisateur créé avec succès',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        profile,
-      },
-    });
-  } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-};
-
-/**
- * Mettre à jour un utilisateur
- */
-export const updateUser = async (req: Request, res: Response) => {
+export const getFacilityStats = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
-    const { id } = req.params;
-    const { email, name, phone, role, password } = req.body;
+    const userId = currentUser?.id;
 
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Non authentifié' });
     }
 
-    const updateData: any = {};
-
-    if (email) updateData.email = email;
-    if (name) updateData.name = name;
-    if (phone !== undefined) updateData.phone = phone;
-    if (role) updateData.role = role as Role;
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: parseInt(id) },
-      data: updateData,
-    });
-
-    // Enregistrer dans les logs d'audit
-    await prisma.auditLog.create({
-      data: {
-        action: 'UPDATE_USER',
-        userId: currentUser.id,
-        details: `Utilisateur ${id} mis à jour`,
+    // Récupérer le profil Admin
+    const admin = await prisma.admin.findFirst({
+      where: { userId },
+      include: {
+        facilityRequest: true,
       },
     });
 
-    return res.status(200).json({
-      message: 'Utilisateur mis à jour avec succès',
-      user: {
-        id: updatedUser.id,
-        email: updatedUser.email,
-        name: updatedUser.name,
-        phone: updatedUser.phone,
-        role: updatedUser.role,
-      },
-    });
-  } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-};
-
-/**
- * Supprimer un utilisateur
- */
-export const deleteUser = async (req: Request, res: Response) => {
-  try {
-    const currentUser = (req as any).user;
-    const { id } = req.params;
-
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
+    console.log('🔍 Admin lookup:', {
+      userId,
+      adminFound: !!admin,
+      facilityRequestId: admin?.facilityRequestId,
+      hasFacilityRequest: !!admin?.facilityRequest,
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
+    if (!admin) {
+      return res.status(404).json({ 
+        error: 'Profil Admin non trouvé. Veuillez vous réinscrire en tant qu\'Admin.' 
+      });
     }
 
-    // Ne pas permettre la suppression de son propre compte
-    if (user.id === currentUser.id) {
-      return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
+    if (!admin.facilityRequest) {
+      return res.status(404).json({ 
+        error: 'Aucune structure liée à ce compte. Votre demande de structure doit être approuvée par un Super Admin.' 
+      });
     }
 
-    // Supprimer l'utilisateur (les profils seront supprimés en cascade)
-    await prisma.user.delete({
-      where: { id: parseInt(id) },
+    const facilityId = admin.facilityRequest.id;
+
+    // Statistiques des médecins de la structure
+    const totalDoctors = await prisma.doctor.count({
+      where: { facilityId },
     });
 
-    // Enregistrer dans les logs d'audit
-    await prisma.auditLog.create({
-      data: {
-        action: 'DELETE_USER',
-        userId: currentUser.id,
-        details: `Utilisateur ${user.email} (ID: ${id}) supprimé`,
-      },
-    });
-
-    return res.status(200).json({
-      message: 'Utilisateur supprimé avec succès',
-    });
-  } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-};
-
-/**
- * Récupérer tous les utilisateurs avec pagination
- */
-export const getAllUsers = async (req: Request, res: Response) => {
-  try {
-    const { role, page = '1', limit = '20', search } = req.query;
-
-    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-    const take = parseInt(limit as string);
-
-    const where: any = {};
-
-    if (role) {
-      where.role = role as Role;
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search as string } },
-        { email: { contains: search as string } },
-      ];
-    }
-
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip,
-        take,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          phone: true,
-          role: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-      prisma.user.count({ where }),
-    ]);
-
-    return res.status(200).json({
-      users,
-      pagination: {
-        total,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        totalPages: Math.ceil(total / parseInt(limit as string)),
-      },
-    });
-  } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-};
-
-/**
- * Récupérer les statistiques globales (Dashboard Admin)
- */
-export const getGlobalStats = async (req: Request, res: Response) => {
-  try {
-    const [
-      totalUsers,
-      totalPatients,
-      totalDoctors,
-      totalAdmins,
-      totalConsultations,
-      totalPrescriptions,
-      totalAppointments,
-      totalDocuments,
-      recentConsultations,
-      pendingAppointments,
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.patient.count(),
-      prisma.doctor.count(),
-      prisma.admin.count(),
-      prisma.consultation.count(),
-      prisma.prescription.count(),
-      prisma.appointment.count(),
-      prisma.document.count(),
-      prisma.consultation.findMany({
-        take: 5,
-        orderBy: { date: 'desc' },
-        include: {
-          patient: {
-            include: {
-              user: {
-                select: {
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-          doctor: {
-            include: {
-              user: {
-                select: {
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
-      }),
-      prisma.appointment.count({
-        where: {
-          status: 'PENDING',
-        },
-      }),
-    ]);
-
-    // Statistiques par mois (derniers 6 mois)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const consultationsByMonth = await prisma.consultation.groupBy({
-      by: ['date'],
+    const pendingDoctors = await prisma.doctor.count({
       where: {
-        date: {
-          gte: sixMonthsAgo,
+        facilityId,
+        user: { isVerified: false },
+      },
+    });
+
+    const activeDoctors = await prisma.doctor.count({
+      where: {
+        facilityId,
+        user: { isVerified: true },
+      },
+    });
+
+    // Statistiques des consultations
+    const totalConsultations = await prisma.consultation.count({
+      where: {
+        doctor: { facilityId },
+      },
+    });
+
+    // Consultations ce mois
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const consultationsThisMonth = await prisma.consultation.count({
+      where: {
+        doctor: { facilityId },
+        date: { gte: startOfMonth },
+      },
+    });
+
+    // Patients uniques traités
+    const uniquePatients = await prisma.consultation.findMany({
+      where: { doctor: { facilityId } },
+      distinct: ['patientId'],
+      select: { patientId: true },
+    });
+
+    // Prescriptions émises
+    const totalPrescriptions = await prisma.prescription.count({
+      where: {
+        consultation: {
+          doctor: { facilityId },
         },
       },
-      _count: true,
     });
 
     return res.status(200).json({
-      overview: {
-        totalUsers,
-        totalPatients,
-        totalDoctors,
-        totalAdmins,
-        totalConsultations,
-        totalPrescriptions,
-        totalAppointments,
-        totalDocuments,
-        pendingAppointments,
+      facility: {
+        id: admin.facilityRequest.id,
+        name: admin.facilityRequest.facilityName,
+        type: admin.facilityRequest.facilityType,
+        city: admin.facilityRequest.facilityCity,
+        status: admin.facilityRequest.status,
       },
-      recentActivity: {
-        recentConsultations,
-      },
-      trends: {
-        consultationsByMonth,
+      stats: {
+        doctors: {
+          total: totalDoctors,
+          active: activeDoctors,
+          pending: pendingDoctors,
+        },
+        consultations: {
+          total: totalConsultations,
+          thisMonth: consultationsThisMonth,
+        },
+        patients: {
+          unique: uniquePatients.length,
+        },
+        prescriptions: {
+          total: totalPrescriptions,
+        },
       },
     });
   } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
+    console.error('❌ Erreur récupération stats structure:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: (error as Error).message });
   }
 };
 
 /**
- * Récupérer les logs d'audit
+ * Récupérer les demandes de médecins en attente de validation
  */
-export const getAuditLogs = async (req: Request, res: Response) => {
+export const getPendingDoctors = async (req: Request, res: Response) => {
   try {
-    const { userId, action, startDate, endDate, page = '1', limit = '50' } = req.query;
+    const currentUser = (req as any).user;
+    const userId = currentUser?.id;
 
-    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
-    const take = parseInt(limit as string);
-
-    const where: any = {};
-
-    if (userId) {
-      where.userId = parseInt(userId as string);
+    if (!userId) {
+      return res.status(401).json({ error: 'Non authentifié' });
     }
 
-    if (action) {
-      where.action = action as string;
+    // Récupérer le profil Admin
+    const admin = await prisma.admin.findFirst({
+      where: { userId },
+      include: { facilityRequest: true },
+    });
+
+    if (!admin || !admin.facilityRequest) {
+      return res.status(404).json({ error: 'Structure non trouvée' });
     }
 
-    if (startDate || endDate) {
-      where.timestamp = {};
-      if (startDate) {
-        where.timestamp.gte = new Date(startDate as string);
-      }
-      if (endDate) {
-        where.timestamp.lte = new Date(endDate as string);
-      }
-    }
+    const facilityId = admin.facilityRequest.id;
 
-    const [logs, total] = await Promise.all([
-      prisma.auditLog.findMany({
-        where,
-        skip,
-        take,
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              role: true,
-            },
+    // Récupérer les médecins en attente de validation
+    const pendingDoctors = await prisma.doctor.findMany({
+      where: {
+        facilityId,
+        user: { isVerified: false },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            phone: true,
+            createdAt: true,
           },
         },
-        orderBy: {
-          timestamp: 'desc',
-        },
-      }),
-      prisma.auditLog.count({ where }),
-    ]);
-
-    return res.status(200).json({
-      logs,
-      pagination: {
-        total,
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        totalPages: Math.ceil(total / parseInt(limit as string)),
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
+
+    return res.status(200).json({ doctors: pendingDoctors });
   } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
+    console.error('❌ Erreur récupération médecins en attente:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: (error as Error).message });
   }
 };
 
 /**
- * Exporter les données (RGPD)
+ * Récupérer tous les médecins de la structure
  */
-export const exportUserData = async (req: Request, res: Response) => {
+export const getAllFacilityDoctors = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const currentUser = (req as any).user;
+    const userId = currentUser?.id;
 
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
+    if (!userId) {
+      return res.status(401).json({ error: 'Non authentifié' });
+    }
+
+    // Récupérer le profil Admin
+    const admin = await prisma.admin.findFirst({
+      where: { userId },
+      include: { facilityRequest: true },
+    });
+
+    if (!admin || !admin.facilityRequest) {
+      return res.status(404).json({ error: 'Structure non trouvée' });
+    }
+
+    const facilityId = admin.facilityRequest.id;
+
+    // Récupérer tous les médecins
+    const doctors = await prisma.doctor.findMany({
+      where: { facilityId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            phone: true,
+            isVerified: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            consultations: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return res.status(200).json({ doctors });
+  } catch (error) {
+    console.error('❌ Erreur récupération médecins:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: (error as Error).message });
+  }
+};
+
+/**
+ * Valider un médecin (activer son compte)
+ */
+export const approveDoctorRequest = async (req: Request, res: Response) => {
+  try {
+    const currentUser = (req as any).user;
+    const userId = currentUser?.id;
+    const doctorId = parseInt(req.params.id);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Non authentifié' });
+    }
+
+    // Récupérer le profil Admin
+    const admin = await prisma.admin.findFirst({
+      where: { userId },
+      include: { facilityRequest: true },
+    });
+
+    if (!admin || !admin.facilityRequest) {
+      return res.status(404).json({ error: 'Structure non trouvée' });
+    }
+
+    const facilityId = admin.facilityRequest.id;
+
+    // Vérifier que le médecin appartient bien à cette structure
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        id: doctorId,
+        facilityId,
+      },
+      include: { user: true },
+    });
+
+    if (!doctor) {
+      return res.status(404).json({ error: 'Médecin non trouvé dans cette structure' });
+    }
+
+    if (doctor.user.isVerified) {
+      return res.status(400).json({ error: 'Ce médecin est déjà validé' });
+    }
+
+    // Activer le compte du médecin
+    await prisma.user.update({
+      where: { id: doctor.userId },
+      data: { isVerified: true },
+    });
+
+    console.log(`✅ Médecin validé: ${doctor.user.email} par Admin de ${admin.facilityRequest.facilityName}`);
+
+    // TODO: Envoyer un email au médecin pour l'informer
+
+    return res.status(200).json({
+      message: `${doctor.user.name} a été validé(e) avec succès`,
+    });
+  } catch (error) {
+    console.error('❌ Erreur validation médecin:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: (error as Error).message });
+  }
+};
+
+/**
+ * Refuser/Désactiver un médecin
+ */
+export const rejectDoctorRequest = async (req: Request, res: Response) => {
+  try {
+    const currentUser = (req as any).user;
+    const userId = currentUser?.id;
+    const doctorId = parseInt(req.params.id);
+    const { reason } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Non authentifié' });
+    }
+
+    // Récupérer le profil Admin
+    const admin = await prisma.admin.findFirst({
+      where: { userId },
+      include: { facilityRequest: true },
+    });
+
+    if (!admin || !admin.facilityRequest) {
+      return res.status(404).json({ error: 'Structure non trouvée' });
+    }
+
+    const facilityId = admin.facilityRequest.id;
+
+    // Vérifier que le médecin appartient bien à cette structure
+    const doctor = await prisma.doctor.findFirst({
+      where: {
+        id: doctorId,
+        facilityId,
+      },
+      include: { user: true },
+    });
+
+    if (!doctor) {
+      return res.status(404).json({ error: 'Médecin non trouvé dans cette structure' });
+    }
+
+    // Désactiver le compte du médecin ET retirer la liaison avec la structure
+    await prisma.user.update({
+      where: { id: doctor.userId },
+      data: { isVerified: false },
+    });
+
+    // Retirer la liaison avec la structure pour qu'il n'apparaisse plus dans les demandes
+    await prisma.doctor.update({
+      where: { id: doctorId },
+      data: { facilityId: null },
+    });
+
+    console.log(`❌ Médecin refusé: ${doctor.user.email} par Admin de ${admin.facilityRequest.facilityName}. Raison: ${reason || 'Non spécifiée'}`);
+
+    // TODO: Envoyer un email au médecin avec le motif
+
+    return res.status(200).json({
+      message: `${doctor.user.name} a été refusé(e) et retiré(e) de votre structure`,
+    });
+  } catch (error) {
+    console.error('❌ Erreur refus médecin:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: (error as Error).message });
+  }
+};
+
+/**
+ * Récupérer les activités récentes de la structure
+ */
+export const getFacilityActivities = async (req: Request, res: Response) => {
+  try {
+    const currentUser = (req as any).user;
+    const userId = currentUser?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Non authentifié' });
+    }
+
+    // Récupérer le profil Admin
+    const admin = await prisma.admin.findFirst({
+      where: { userId },
+      include: { facilityRequest: true },
+    });
+
+    if (!admin || !admin.facilityRequest) {
+      return res.status(404).json({ error: 'Structure non trouvée' });
+    }
+
+    const facilityId = admin.facilityRequest.id;
+
+    // Récupérer les consultations récentes
+    const recentConsultations = await prisma.consultation.findMany({
+      where: {
+        doctor: { facilityId },
+      },
       include: {
         patient: {
-          include: {
-            consultations: true,
-            appointments: true,
-            documents: true,
-            allergies: true,
-            kenePoints: true,
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
         doctor: {
-          include: {
-            consultations: true,
-            appointments: true,
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
-        notifications: true,
-        auditLogs: true,
       },
+      orderBy: {
+        date: 'desc',
+      },
+      take: 20,
     });
 
-    if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    }
-
-    const currentUser = (req as any).user;
-
-    // Enregistrer dans les logs d'audit
-    await prisma.auditLog.create({
-      data: {
-        action: 'EXPORT_USER_DATA',
-        userId: currentUser.id,
-        details: `Données de l'utilisateur ${userId} exportées`,
+    // Récupérer les nouveaux médecins récemment inscrits
+    const recentDoctors = await prisma.doctor.findMany({
+      where: { facilityId },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            isVerified: true,
+            createdAt: true,
+          },
+        },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 10,
     });
 
     return res.status(200).json({
-      message: 'Données exportées avec succès',
-      data: user,
-      exportDate: new Date().toISOString(),
+      recentConsultations,
+      recentDoctors,
     });
   } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
+    console.error('❌ Erreur récupération activités:', error);
+    return res.status(500).json({ error: 'Erreur serveur', details: (error as Error).message });
   }
 };
-
-/**
- * Anonymiser un utilisateur (RGPD - Droit à l'oubli)
- */
-export const anonymizeUser = async (req: Request, res: Response) => {
-  try {
-    const currentUser = (req as any).user;
-    const { userId } = req.params;
-
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
-    });
-
-    if (!user) {
-      return res.status(404).json({ error: 'Utilisateur non trouvé' });
-    }
-
-    // Anonymiser l'utilisateur
-    await prisma.user.update({
-      where: { id: parseInt(userId) },
-      data: {
-        email: `anonymized_${userId}@deleted.com`,
-        name: `Utilisateur Anonymisé ${userId}`,
-        phone: null,
-        password: 'ANONYMIZED',
-      },
-    });
-
-    // Enregistrer dans les logs d'audit
-    await prisma.auditLog.create({
-      data: {
-        action: 'ANONYMIZE_USER',
-        userId: currentUser.id,
-        details: `Utilisateur ${userId} anonymisé (RGPD)`,
-      },
-    });
-
-    return res.status(200).json({
-      message: 'Utilisateur anonymisé avec succès',
-    });
-  } catch (error) {
-    console.error('Erreur:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
-  }
-};
-

@@ -19,6 +19,20 @@ async function main() {
   });
   console.log(`Utilisateur admin créé/mis à jour: ${adminUser.email}`);
 
+  // Création du Super Admin
+  const superAdminUser = await prisma.user.upsert({
+    where: { email: 'superadmin@santekene.com' },
+    update: { name: 'Super Admin', password: hashedPassword, role: Role.SUPERADMIN, phone: '+223 70 99 99 99' },
+    create: {
+      email: 'superadmin@santekene.com',
+      name: 'Super Admin',
+      password: hashedPassword,
+      role: Role.SUPERADMIN,
+      phone: '+223 70 99 99 99',
+    },
+  });
+  console.log(`Super Admin créé/mis à jour: ${superAdminUser.email}`);
+
   const user1 = await prisma.user.upsert({
     where: { email: 'patient1@example.com' },
     update: { name: 'Patient One', password: hashedPassword, role: Role.PATIENT, phone: '+223 70 11 22 33' },

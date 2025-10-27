@@ -46,6 +46,7 @@ import prescriptionRoutes from './routes/prescription.routes.js';
 import documentRoutes from './routes/document.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import superadminRoutes from './routes/superadmin.routes.js';
 import elearningRoutes from './routes/elearning.routes.js';
 import kenepointsRoutes from './routes/kenepoints.routes.js';
 import communityRoutes from './routes/community.routes.js';
@@ -77,6 +78,9 @@ app.use('/api/notifications', notificationRoutes);
 // Administration
 app.use('/api/admin', adminRoutes);
 
+// Super Administration
+app.use('/api/superadmin', superadminRoutes);
+
 // E-learning
 app.use('/api/elearning', elearningRoutes);
 
@@ -98,4 +102,5 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 app.listen(PORT, () => {
+  console.log(`✅ Serveur backend démarré sur http://localhost:${PORT}`);
 });

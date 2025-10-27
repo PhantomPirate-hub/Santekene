@@ -1,37 +1,29 @@
-import { Router } from 'express';
+import express from 'express';
+import { protect } from '../middleware/auth.middleware.js';
 import {
-  createUser,
-  updateUser,
-  deleteUser,
-  getAllUsers,
-  getGlobalStats,
-  getAuditLogs,
-  exportUserData,
-  anonymizeUser,
+  getFacilityStats,
+  getPendingDoctors,
+  getAllFacilityDoctors,
+  approveDoctorRequest,
+  rejectDoctorRequest,
+  getFacilityActivities,
 } from '../controllers/admin.controller.js';
-import { protect, authorize } from '../middleware/auth.middleware.js';
-import { Role } from '@prisma/client';
 
-const router = Router();
+const router = express.Router();
 
-// Toutes les routes nécessitent une authentification et des droits admin
-router.use(protect, authorize(Role.ADMIN, Role.SUPERADMIN));
+// Toutes les routes admin nécessitent une authentification
+router.use(protect);
 
-// CRUD Utilisateurs
-router.post('/users', createUser);
-router.get('/users', getAllUsers);
-router.put('/users/:id', updateUser);
-router.delete('/users/:id', deleteUser);
+// Statistiques de la structure
+router.get('/facility/stats', getFacilityStats);
 
-// Statistiques globales
-router.get('/stats', getGlobalStats);
+// Gestion des médecins
+router.get('/doctors/pending', getPendingDoctors);
+router.get('/doctors', getAllFacilityDoctors);
+router.put('/doctors/:id/approve', approveDoctorRequest);
+router.put('/doctors/:id/reject', rejectDoctorRequest);
 
-// Logs d'audit
-router.get('/audit-logs', getAuditLogs);
-
-// RGPD
-router.get('/users/:userId/export', exportUserData);
-router.post('/users/:userId/anonymize', anonymizeUser);
+// Activités de la structure
+router.get('/facility/activities', getFacilityActivities);
 
 export default router;
-

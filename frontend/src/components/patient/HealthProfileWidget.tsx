@@ -114,7 +114,7 @@ export default function HealthProfileWidget() {
               <div>
                 <p className="text-sm font-semibold text-green-800">Prochain rendez-vous</p>
                 <p className="text-sm text-green-700 mt-1">
-                  Dr. {nextAppointment.doctor.user.name}
+                  {nextAppointment.doctor.user.name}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
                   {new Date(nextAppointment.date).toLocaleDateString('fr-FR', {
@@ -144,7 +144,7 @@ export default function HealthProfileWidget() {
             <p className="text-sm font-medium text-texte-principal/60 mb-2">Dernière consultation</p>
             <div className="bg-bleu-clair/5 p-3 rounded-lg">
               <p className="text-sm font-medium text-texte-principal">
-                Dr. {lastConsultation.doctor.user.name}
+                {lastConsultation.doctor.user.name}
               </p>
               <p className="text-xs text-texte-principal/60 mt-1">
                 {new Date(lastConsultation.date).toLocaleDateString('fr-FR')} - {lastConsultation.type}
@@ -171,7 +171,7 @@ export default function HealthProfileWidget() {
                   <div key={index} className="bg-red-50 border-l-4 border-red-500 p-2 rounded">
                     <p className="text-sm font-medium text-red-800">{consultation.allergies}</p>
                     <p className="text-xs text-red-600">
-                      Détecté le {new Date(consultation.date).toLocaleDateString('fr-FR')} par Dr. {consultation.doctor.user.name}
+                      Détecté le {new Date(consultation.date).toLocaleDateString('fr-FR')} par {consultation.doctor.user.name}
                     </p>
                   </div>
                 ))}

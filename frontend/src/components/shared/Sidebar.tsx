@@ -20,14 +20,16 @@ import {
   Award,
   Shield,
   Calendar,
-  Bell
+  Bell,
+  Activity,
+  UserCheck
 } from 'lucide-react';
 import { useAuth, UserRole } from '@/context/AuthContext';
 
 // Définition des liens avec les rôles autorisés
 const navLinks = [
-  // Commun
-  { href: '/dashboard', label: 'Accueil', icon: LayoutDashboard, roles: ['PATIENT', 'MEDECIN', 'ADMIN'] },
+  // Patient et Médecin
+  { href: '/dashboard', label: 'Accueil', icon: LayoutDashboard, roles: ['PATIENT', 'MEDECIN'] },
   
   // Patient (ordre demandé)
   { href: '/dashboard/dse', label: 'Mon DSE', icon: FolderKanban, roles: ['PATIENT'] },
@@ -46,10 +48,18 @@ const navLinks = [
   { href: '/dashboard/medecin/notifications', label: 'Notifications', icon: Bell, roles: ['MEDECIN'] },
   { href: '/dashboard/medecin/stats', label: 'Statistiques', icon: BarChart3, roles: ['MEDECIN'] },
 
-  // Admin
-  { href: '/dashboard/admin', label: 'Admin', icon: ShieldCheck, roles: ['ADMIN'] },
-  { href: '/dashboard/users', label: 'Utilisateurs', icon: Users, roles: ['ADMIN'] },
-  { href: '/dashboard/monitoring', label: 'Monitoring', icon: AreaChart, roles: ['ADMIN'] },
+  // Admin (Responsable de structure)
+  { href: '/dashboard/admin', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['ADMIN'] },
+  { href: '/dashboard/admin/doctors/pending', label: 'Demandes', icon: UserCheck, roles: ['ADMIN'] },
+  { href: '/dashboard/admin/doctors', label: 'Médecins', icon: Stethoscope, roles: ['ADMIN'] },
+  { href: '/dashboard/admin/activities', label: 'Activités', icon: Activity, roles: ['ADMIN'] },
+
+  // Super Admin
+  { href: '/dashboard/superadmin', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPERADMIN'] },
+  { href: '/dashboard/superadmin/facilities', label: 'Structures', icon: Shield, roles: ['SUPERADMIN'] },
+  { href: '/dashboard/superadmin/users', label: 'Utilisateurs', icon: Users, roles: ['SUPERADMIN'] },
+  { href: '/dashboard/superadmin/monitoring', label: 'Monitoring', icon: Activity, roles: ['SUPERADMIN'] },
+  { href: '/dashboard/superadmin/create-admin', label: 'Créer Admin', icon: ShieldCheck, roles: ['SUPERADMIN'] },
 ];
 
 const Sidebar = () => {

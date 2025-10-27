@@ -2,14 +2,25 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { HashConnect, HashConnectTypes, HashConnectConnectionState } from 'hashconnect';
+
+// Importer dynamiquement HashConnect uniquement côté client
+let HashConnect: any;
+let HashConnectTypes: any;
+let HashConnectConnectionState: any;
+
+if (typeof window !== 'undefined') {
+  const hashconnect = require('hashconnect');
+  HashConnect = hashconnect.HashConnect;
+  HashConnectTypes = hashconnect.HashConnectTypes;
+  HashConnectConnectionState = hashconnect.HashConnectConnectionState;
+}
 
 // --- Types ---
-type PairingData = HashConnectTypes.SavedPairingData | null;
+type PairingData = any | null;
 
 interface HashConnectContextType {
-  hashconnect: HashConnect | null;
-  connectionState: HashConnectConnectionState;
+  hashconnect: any | null;
+  connectionState: any;
   pairingData: PairingData;
   connectToWallet: () => void;
   disconnect: () => void;
@@ -19,30 +30,39 @@ interface HashConnectContextType {
 const HashConnectContext = createContext<HashConnectContextType | undefined>(undefined);
 
 // --- Provider ---
-const appMetadata: HashConnectTypes.AppMetadata = {
+const appMetadata: any = typeof window !== 'undefined' ? {
   name: "Santé Kènè",
   description: "Plateforme de santé numérique",
-  icon: "https://www.hashpack.app/img/logo.svg", // TODO: Remplacer par une URL d'icône publique
-};
+  icon: "https://www.hashpack.app/img/logo.svg",
+} : {};
 
 export const HashConnectProvider = ({ children }: { children: ReactNode }) => {
-  const [hashconnect, setHashconnect] = useState<HashConnect | null>(null);
-  const [connectionState, setConnectionState] = useState<HashConnectConnectionState>(HashConnectConnectionState.Disconnected);
+  const [hashconnect, setHashconnect] = useState<any | null>(null);
+  const [connectionState, setConnectionState] = useState<any>(
+    typeof window !== 'undefined' && HashConnectConnectionState 
+      ? HashConnectConnectionState.Disconnected 
+      : 'Disconnected'
+  );
   const [pairingData, setPairingData] = useState<PairingData>(null);
 
   // Initialisation de HashConnect
   useEffect(() => {
+    // Ne s'exécuter que côté client
+    if (typeof window === 'undefined' || !HashConnect) {
+      return;
+    }
+
     const initializeHashConnect = async () => {
       try {
         const hc = new HashConnect(true); // true pour le mode debug
 
         // Vérifier que les événements existent avant de les utiliser
         if (hc.stateChangedEvent && typeof hc.stateChangedEvent.on === 'function') {
-          hc.stateChangedEvent.on(state => setConnectionState(state));
+          hc.stateChangedEvent.on((state: any) => setConnectionState(state));
         }
         
         if (hc.pairingEvent && typeof hc.pairingEvent.on === 'function') {
-          hc.pairingEvent.on(data => setPairingData(data));
+          hc.pairingEvent.on((data: any) => setPairingData(data));
         }
 
         await hc.init(appMetadata, 'testnet', false);

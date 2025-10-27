@@ -344,7 +344,7 @@ const SettingsPage = () => {
                   value={profileData.phone}
                   onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                   className="mt-1 border-2 border-gray-200 focus:border-green-500"
-                  placeholder="+221 XX XXX XX XX"
+                  placeholder="+223 76 12 34 56"
                 />
               </div>
 
@@ -407,16 +407,16 @@ const SettingsPage = () => {
 
                   {/* Localité */}
                   <div>
-                    <Label htmlFor="location" className="text-sm font-medium text-gray-700">
-                      Localité / Ville
+                    <Label htmlFor="location-patient" className="text-sm font-medium text-gray-700">
+                      Ville / Commune
                     </Label>
                     <Input
-                      id="location"
+                      id="location-patient"
                       type="text"
                       value={profileData.location}
                       onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
                       className="mt-1 border-2 border-gray-200 focus:border-green-500"
-                      placeholder="Hamdallaye, Ségou"
+                      placeholder="Ex: Bamako, Sikasso, Mopti, Kayes..."
                     />
                   </div>
                 </>
@@ -460,16 +460,16 @@ const SettingsPage = () => {
 
                   {/* Résidence / Localité */}
                   <div>
-                    <Label htmlFor="location" className="text-sm font-medium text-gray-700">
-                      Résidence / Localité
+                    <Label htmlFor="location-medecin" className="text-sm font-medium text-gray-700">
+                      Ville d'exercice
                     </Label>
                     <Input
-                      id="location"
+                      id="location-medecin"
                       type="text"
                       value={profileData.location}
                       onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
                       className="mt-1 border-2 border-gray-200 focus:border-green-500"
-                      placeholder="Bamako, Mali"
+                      placeholder="Ex: Bamako, Ségou, Koulikoro, Gao..."
                     />
                   </div>
                 </>

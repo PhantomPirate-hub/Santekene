@@ -235,7 +235,7 @@ export default function DseAccessRequestsPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <User className="w-5 h-5 text-orange-600" />
-                      Dr. {request.doctor.user.name}
+                      {request.doctor.user.name}
                     </CardTitle>
                     {getStatusBadge(request.status)}
                   </div>
@@ -353,7 +353,7 @@ export default function DseAccessRequestsPage() {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-base flex items-center gap-2">
                       <User className="w-4 h-4" />
-                      Dr. {request.doctor.user.name}
+                      {request.doctor.user.name}
                     </CardTitle>
                     {getStatusBadge(request.status)}
                   </div>

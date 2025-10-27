@@ -262,7 +262,7 @@ export default function DSEPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg">
-                        Dr. {consultation.doctor.user.name}
+                        {consultation.doctor.user.name}
                       </CardTitle>
                       <CardDescription>
                         {formatDate(consultation.date)} - {consultation.type}
@@ -385,7 +385,7 @@ export default function DSEPage() {
                           {consultation.allergies}
                         </p>
                         <p className="text-sm text-texte-principal/60 mt-2">
-                          Détecté par Dr. {consultation.doctor.user.name}
+                          Détecté par {consultation.doctor.user.name}
                         </p>
                       </div>
                     </div>

@@ -862,7 +862,7 @@ export default function PatientAppointmentsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-texte-principal">
-                              Dr. {selectedDoctor.user.name}
+                              {selectedDoctor.user.name}
                             </p>
                             <p className="text-sm text-texte-principal/70">
                               {selectedDoctor.speciality}
@@ -1030,7 +1030,7 @@ export default function PatientAppointmentsPage() {
                     Modifier le rendez-vous
                   </h2>
                   <p className="text-texte-principal/60 mt-1">
-                    Avec Dr. {editingAppointment.doctor.user.name}
+                    Avec {editingAppointment.doctor.user.name}
                   </p>
                 </div>
                 <button
