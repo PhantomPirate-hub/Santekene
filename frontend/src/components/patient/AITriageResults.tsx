@@ -175,7 +175,7 @@ export default function AITriageResults({ results }: AITriageResultsProps) {
             <div className={colors.icon}>
               {getUrgencyIcon()}
             </div>
-            <div>
+            <div className="flex-1">
               <CardTitle className={`text-2xl ${colors.text}`}>
                 {results.urgency_label}
               </CardTitle>
@@ -185,8 +185,30 @@ export default function AITriageResults({ results }: AITriageResultsProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <p className={`${colors.text} text-lg`}>{results.summary}</p>
+        <CardContent className="space-y-4">
+          <p className={`${colors.text} text-lg font-medium`}>{results.summary}</p>
+          
+          {/* Structure recommandée */}
+          {(results as any).recommended_facility_label && (
+            <div className={`${colors.bg} border ${colors.border} rounded-lg p-4`}>
+              <div className="flex items-start gap-3">
+                <Building2 className={`w-6 h-6 ${colors.icon} flex-shrink-0 mt-1`} />
+                <div className="flex-1">
+                  <p className={`font-semibold ${colors.text} text-base mb-1`}>
+                    Structure recommandée
+                  </p>
+                  <p className={`text-lg font-bold ${colors.text}`}>
+                    {(results as any).recommended_facility_label}
+                  </p>
+                  {(results as any).facility_reason && (
+                    <p className={`text-sm ${colors.text} mt-2 opacity-90`}>
+                      {(results as any).facility_reason}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

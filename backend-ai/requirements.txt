@@ -1,7 +1,10 @@
-fastapi
-uvicorn[standard]
-langchain
-langchain-openai
-python-dotenv
-pydantic
-python-multipart
+# Backend IA - Santé Kènè (Groq - Gratuit & Rapide)
+# Installation : pip install -r requirements.txt
+
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+groq==0.11.0
+httpx==0.27.0
+requests==2.31.0
+python-dotenv==1.0.0

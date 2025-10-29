@@ -169,8 +169,8 @@ const AITriageForm = ({ setTriageResults }: AITriageFormProps) => {
               Quels sont vos symptômes ? <span className="text-red-500">*</span>
             </label>
             <Textarea
-              placeholder="Exemple : J'ai de la fièvre depuis 2 jours, des maux de tête et je me sens très fatigué. J'ai aussi des courbatures..."
-              rows={8}
+              placeholder="Exemple : J'ai de la fièvre depuis 2 jours, des maux de tête et je me sens très fatigué..."
+              rows={5}
               value={symptomsText}
               onChange={(e) => {
                 setSymptomsText(e.target.value);
@@ -220,7 +220,7 @@ const AITriageForm = ({ setTriageResults }: AITriageFormProps) => {
             {/* Bouton analyse texte */}
             <Button
               type="submit"
-              disabled={isLoading || !symptomsText.trim()}
+              disabled={isLoading || !symptomsText || !symptomsText.trim()}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white text-lg py-6 rounded-xl"
               size="lg"
             >
@@ -239,16 +239,9 @@ const AITriageForm = ({ setTriageResults }: AITriageFormProps) => {
           </div>
         </form>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-sm text-blue-900 mb-2">ℹ️ Comment ça marche ?</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Écrivez</strong> vos symptômes ou <strong>enregistrez votre voix</strong> 🎤</li>
-            <li>• L'IA analyse et évalue le niveau d'urgence</li>
-            <li>• Vous recevez des recommandations personnalisées</li>
-            <li>• Des médecins disponibles vous sont suggérés</li>
-          </ul>
-          <p className="text-xs text-blue-700 mt-2">
-            💡 L'enregistrement vocal est idéal pour les personnes qui ont du mal à écrire
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-blue-800">
+            <strong>ℹ️ Comment ça marche :</strong> Décrivez vos symptômes (texte ou voix 🎤) → L'IA analyse le niveau d'urgence → Vous recevez des recommandations et des suggestions de médecins
           </p>
         </div>
       </CardContent>

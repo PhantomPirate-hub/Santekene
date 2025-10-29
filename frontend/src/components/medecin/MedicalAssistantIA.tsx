@@ -107,8 +107,9 @@ export default function MedicalAssistantIA({ patientInfo, medicalHistory }: AIAn
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <Card className="w-full max-w-5xl my-8">
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+      <div className="min-h-screen flex items-center justify-center p-4 py-8">
+        <Card className="w-full max-w-5xl my-8">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -380,6 +381,7 @@ export default function MedicalAssistantIA({ patientInfo, medicalHistory }: AIAn
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

@@ -12,7 +12,7 @@ Guide complet d'installation de A à Z :
 - ✅ Installation Backend API + Backend IA + Frontend
 - ✅ Configuration MySQL + Prisma
 - ✅ Configuration Hedera (HCS, HFS, HTS)
-- ✅ Configuration OpenAI (Backend IA)
+- ✅ Configuration Groq API (Backend IA)
 - ✅ Démarrage et vérification
 - ✅ Dépannage
 
@@ -45,7 +45,8 @@ Guide d'intégration mobile Flutter :
 
 ### **4. 🤖 Backend IA** (dans ce README)
 L'intégration IA est documentée directement dans ce README :
-- ✅ Triage IA des symptômes (OpenAI GPT)
+- ✅ Triage IA des symptômes (Groq Llama 3.3)
+- ✅ Assistant médical pour diagnostics (Groq)
 - ✅ Transcription audio (Whisper)
 - ✅ Recommandations médecins et centres de santé
 - ✅ Installation et configuration Backend IA
@@ -71,7 +72,7 @@ npm run dev
 ```bash
 cd backend-ia
 python -m pip install -r requirements.txt
-# Configurer OPENAI_API_KEY dans .env
+# Créer .env avec GROQ_API_KEY
 python -m uvicorn main:app --reload --port 8000
 ```
 
@@ -102,8 +103,8 @@ npm run dev
            ↓ HTTP/REST (3001)      ↓ HTTP/REST (8000)
 ┌──────────────────────────┐    ┌──────────────────────────┐
 │   BACKEND API (Express)  │    │   BACKEND IA (FastAPI)   │
-│  TypeScript + Prisma ORM │    │   Python + OpenAI        │
-│  JWT Auth + Multer       │←───│   NLP + Speech-to-Text   │
+│  TypeScript + Prisma ORM │    │   Python + Groq API      │
+│  JWT Auth + Multer       │←───│   Llama 3.3 70B          │
 └──────────────────────────┘    └──────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -170,27 +171,26 @@ Base de données MySQL
 
 ### **Installation Backend IA**
 
-Le backend IA est un service Python/FastAPI séparé :
+Le backend IA utilise **Groq API** (gratuit et ultra-rapide) :
 
 ```bash
 # Prérequis
-python -m pip install fastapi uvicorn openai python-multipart
+cd backend-ai
+pip install -r requirements.txt
 
 # Configuration
-cd backend-ia
-cp .env.example .env
-# Éditer .env et ajouter OPENAI_API_KEY
+# Créer un fichier .env avec votre clé Groq
+echo "GROQ_API_KEY=votre_cle_ici" > .env
 
 # Démarrage
 python -m uvicorn main:app --reload --port 8000
 ```
 
-**Variables d'environnement (.env)** :
-```env
-OPENAI_API_KEY=sk-...
-AI_MODEL=gpt-3.5-turbo
-BACKEND_URL=http://localhost:3001
-```
+**Obtenir une clé Groq (GRATUIT)** :
+1. Aller sur https://console.groq.com/keys
+2. Créer un compte gratuit
+3. Générer une clé API
+4. L'ajouter dans `backend-ai/.env`
 
 ### **API Endpoints IA**
 
@@ -261,14 +261,13 @@ const response = await fetch('http://localhost:8000/api/ai/transcribe', {
 ### **Technologies IA utilisées**
 
 - **FastAPI** : Framework web Python haute performance
-- **OpenAI API** : GPT-3.5/GPT-4 pour analyse NLP
-- **Speech-to-Text** : Whisper (OpenAI) pour transcription audio
+- **Groq API** : Llama 3.3 70B pour analyse médicale ultra-rapide (gratuit)
 - **Géolocalisation** : Formule de Haversine pour calcul de distance
 - **NLP** : Traitement du langage naturel pour extraction de symptômes
 
 ### **Sécurité IA**
 
-- ✅ Aucune donnée médicale sensible envoyée à OpenAI
+- ✅ Aucune donnée médicale sensible envoyée au cloud
 - ✅ Analyse uniquement des symptômes (anonymisés)
 - ✅ Pas de stockage des conversations
 - ✅ Recommandations à titre informatif (non-diagnostic médical)
@@ -394,7 +393,7 @@ Santekene/
 ├── backend-ia/
 │   ├── main.py                    # Serveur FastAPI
 │   ├── requirements.txt           # Dépendances Python
-│   └── .env                       # OPENAI_API_KEY
+│   └── .env                       # GROQ_API_KEY
 ├── frontend/
 │   ├── src/
 │   │   ├── app/                   # Pages Next.js
@@ -526,10 +525,10 @@ SELECT COUNT(*) FROM User WHERE role = 'SUPERADMIN';
 | Services Hedera indisponibles | Vérifier `HEDERA_*` dans `.env` (sans guillemets) |
 | Erreur Prisma EPERM | Arrêter backend → `npx prisma generate` → Redémarrer |
 | Migration échoue | Supprimer dossiers vides dans `prisma/migrations/` |
-| Backend IA ne démarre pas | Vérifier `OPENAI_API_KEY` dans `.env` (backend-ia) |
+| Backend IA ne démarre pas | Vérifier `GROQ_API_KEY` dans `.env` (backend-ai) |
 | Erreur triage IA | Vérifier que backend IA est démarré sur port 8000 |
-| Transcription audio échoue | Vérifier clé OpenAI et quota API |
-| Pas de recommandations | Vérifier `BACKEND_URL` dans `.env` (backend-ia) |
+| Erreur 400 model decommissioned | Modèle Groq obsolète, vérifier la version dans main.py |
+| Pas de recommandations | Vérifier `BACKEND_URL` dans `.env` (backend-ai) |
 
 ---
 
@@ -578,10 +577,10 @@ SELECT COUNT(*) FROM User WHERE role = 'SUPERADMIN';
 Vous avez maintenant accès à une **application de santé complète** avec :
 - ✅ Frontend moderne (Next.js 14)
 - ✅ Backend robuste (Node.js + Express)
-- ✅ Backend IA (Python + FastAPI + OpenAI)
+- ✅ Backend IA (Python + FastAPI + Groq API)
 - ✅ Base de données relationnelle (MySQL + Prisma)
 - ✅ Blockchain Hedera (HCS + HFS + HTS)
-- ✅ Intelligence Artificielle (NLP + Speech-to-Text)
+- ✅ Intelligence Artificielle (Llama 3.3 70B)
 - ✅ Système de gamification (KenePoints + Badges)
 - ✅ Intégration mobile prête (Flutter)
 
@@ -599,7 +598,7 @@ Vous avez maintenant accès à une **application de santé complète** avec :
 **Version** : 1.0.0  
 **Date** : Octobre 2025  
 **Hedera Services** : HCS + HFS + HTS  
-**IA Backend** : Python/FastAPI + OpenAI (GPT + Whisper)  
+**IA Backend** : Python/FastAPI + Groq API (Llama 3.3 70B + Whisper)  
 **Licence** : MIT (à définir)
 
 🚀 **Bonne utilisation de Santé Kènè !**
