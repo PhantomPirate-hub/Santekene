@@ -206,15 +206,15 @@ export default function KenePointsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="bg-gradient-to-br from-vert-kene to-green-600 text-blanc-pur">
+          <Card className="bg-gradient-to-br from-vert-kene to-green-600">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-90">Solde Total</p>
-                  <p className="text-4xl font-bold mt-2">{kenePointsData?.totalPoints || 0}</p>
-                  <p className="text-xs opacity-75 mt-1">KènèPoints</p>
+                  <p className="text-sm text-black font-medium">Solde Total</p>
+                  <p className="text-4xl font-bold mt-2 text-black">{kenePointsData?.totalPoints || 0}</p>
+                  <p className="text-xs text-black font-medium mt-1">KènèPoints</p>
                 </div>
-                <Sparkles className="w-12 h-12 opacity-90" />
+                <Sparkles className="w-12 h-12 text-black opacity-50" />
               </div>
             </CardContent>
           </Card>

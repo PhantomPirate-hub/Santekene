@@ -54,11 +54,17 @@ interface Comment {
   author: Author;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
 interface Post {
   id: number;
   title: string;
   content: string;
-  category: string;
+  category: Category;
   createdAt: string;
   author: Author;
   likesCount: number;
@@ -81,6 +87,7 @@ export default function CommunityPage() {
   const [commentTexts, setCommentTexts] = useState<{ [key: number]: string }>({});
   const [activeTab, setActiveTab] = useState<'all' | 'my'>('all');
   const [sortBy, setSortBy] = useState<'recent' | 'popular'>('recent');
+  const [likingPosts, setLikingPosts] = useState<{ [key: number]: boolean }>({}); // Suivi des likes en cours
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -92,7 +99,7 @@ export default function CommunityPage() {
   const [newPost, setNewPost] = useState({
     title: '',
     content: '',
-    category: '',
+    categoryId: '',
   });
 
   // Charger les catégories
@@ -108,17 +115,20 @@ export default function CommunityPage() {
   const fetchCategories = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/categories`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/categories`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+      
       if (res.ok) {
         const data = await res.json();
-        setCategories(data.categories);
+        setCategories(data.categories || []);
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des catégories:', error);
+      console.error('Erreur lors du chargement des catégories');
     }
   };
 
@@ -126,18 +136,19 @@ export default function CommunityPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       
       let url = '';
       if (activeTab === 'my') {
-        url = `${process.env.NEXT_PUBLIC_API_URL}/api/community/my-posts`;
+        url = `${backendUrl}/api/community/my-posts`;
       } else {
         const params = new URLSearchParams({
           page: pagination.page.toString(),
           limit: pagination.limit.toString(),
           ...(searchQuery && { search: searchQuery }),
-          ...(selectedCategory && { category: selectedCategory }),
+          ...(selectedCategory && { categoryId: selectedCategory }),
         });
-        url = `${process.env.NEXT_PUBLIC_API_URL}/api/community/posts?${params}`;
+        url = `${backendUrl}/api/community/posts?${params}`;
       }
 
       const res = await fetch(url, {
@@ -148,10 +159,11 @@ export default function CommunityPage() {
 
       if (res.ok) {
         const data = await res.json();
+        
         if (activeTab === 'my') {
           setPosts(data);
         } else {
-          setPosts(data.posts);
+          setPosts(data.posts || []);
           setPagination({
             page: data.pagination.page,
             limit: data.pagination.limit,
@@ -161,7 +173,7 @@ export default function CommunityPage() {
         }
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des posts:', error);
+      console.error('Erreur lors du chargement des posts');
     } finally {
       setLoading(false);
     }
@@ -170,14 +182,15 @@ export default function CommunityPage() {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!newPost.title || !newPost.content || !newPost.category) {
-      alert('Veuillez remplir tous les champs');
+    if (!newPost.title || !newPost.content || !newPost.categoryId) {
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/posts`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/community/posts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,16 +200,14 @@ export default function CommunityPage() {
       });
 
       if (res.ok) {
-        alert('Post créé avec succès !');
         setIsCreateModalOpen(false);
-        setNewPost({ title: '', content: '', category: '' });
+        setNewPost({ title: '', content: '', categoryId: '' });
         fetchPosts();
       } else {
         const data = await res.json();
         alert(data.error || 'Erreur lors de la création du post');
       }
     } catch (error) {
-      console.error('Erreur:', error);
       alert('Erreur serveur');
     }
   };
@@ -208,7 +219,9 @@ export default function CommunityPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/posts/${editingPost.id}`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/community/posts/${editingPost.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -217,12 +230,11 @@ export default function CommunityPage() {
         body: JSON.stringify({
           title: editingPost.title,
           content: editingPost.content,
-          category: editingPost.category,
+          categoryId: editingPost.category.id,
         }),
       });
 
       if (res.ok) {
-        alert('Post modifié avec succès !');
         setIsEditModalOpen(false);
         setEditingPost(null);
         fetchPosts();
@@ -241,7 +253,9 @@ export default function CommunityPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/posts/${postId}`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/community/posts/${postId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -249,7 +263,6 @@ export default function CommunityPage() {
       });
 
       if (res.ok) {
-        alert('Post supprimé avec succès !');
         fetchPosts();
       } else {
         const data = await res.json();
@@ -262,10 +275,46 @@ export default function CommunityPage() {
   };
 
   const handleToggleLike = async (postId: number) => {
+    // 🛑 Empêcher les clics multiples rapides
+    if (likingPosts[postId]) {
+      return;
+    }
+
     try {
-      console.log('🔄 Toggle like pour post:', postId);
+      // Marquer le post comme "en cours de like"
+      setLikingPosts(prev => ({ ...prev, [postId]: true }));
+      
+      // Trouver le post actuel pour l'update optimiste
+      const currentPost = posts.find(p => p.id === postId);
+      if (!currentPost) {
+        setLikingPosts(prev => ({ ...prev, [postId]: false }));
+        return;
+      }
+
+      // 🚀 MISE À JOUR OPTIMISTE IMMÉDIATE (avant la requête)
+      const optimisticIsLiked = !currentPost.isLikedByCurrentUser;
+      const optimisticLikesCount = optimisticIsLiked 
+        ? currentPost.likesCount + 1 
+        : Math.max(0, currentPost.likesCount - 1);
+
+      // Mise à jour immédiate de l'UI (optimiste)
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                isLikedByCurrentUser: optimisticIsLiked,
+                likesCount: optimisticLikesCount,
+              }
+            : post
+        )
+      );
+
+      // Ensuite, faire la requête au serveur
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/posts/${postId}/like`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/community/posts/${postId}/like`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -274,33 +323,47 @@ export default function CommunityPage() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log('✅ Réponse like:', data);
+        
+        // Mettre à jour avec les données réelles du serveur
         setPosts((prev) =>
           prev.map((post) =>
             post.id === postId
               ? {
                   ...post,
                   isLikedByCurrentUser: data.isLiked,
-                  likesCount: data.isLiked ? post.likesCount + 1 : post.likesCount - 1,
+                  likesCount: data.likesCount,
                 }
               : post
           )
         );
       } else {
-        const errorData = await res.json();
-        console.error('❌ Erreur like:', errorData);
-        alert(errorData.error || 'Erreur lors du like');
+        // En cas d'erreur, ANNULER l'update optimiste
+        setPosts((prev) =>
+          prev.map((post) =>
+            post.id === postId
+              ? {
+                  ...post,
+                  isLikedByCurrentUser: currentPost.isLikedByCurrentUser,
+                  likesCount: currentPost.likesCount,
+                }
+              : post
+          )
+        );
       }
     } catch (error) {
-      console.error('❌ Erreur réseau:', error);
-      alert('Erreur lors du like');
+      // En cas d'erreur réseau, on garde l'update optimiste
+    } finally {
+      // ✅ Toujours démarquer le post comme "terminé"
+      setLikingPosts(prev => ({ ...prev, [postId]: false }));
     }
   };
 
   const fetchPostComments = async (postId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/posts/${postId}`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/community/posts/${postId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -325,14 +388,14 @@ export default function CommunityPage() {
   const handleAddComment = async (postId: number) => {
     const content = commentTexts[postId]?.trim();
     if (!content) {
-      alert('Le commentaire ne peut pas être vide');
       return;
     }
 
     try {
-      console.log('💬 Ajout commentaire pour post:', postId, 'Contenu:', content);
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/posts/${postId}/comments`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/community/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -342,8 +405,6 @@ export default function CommunityPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        console.log('✅ Commentaire ajouté:', data);
         setCommentTexts({ ...commentTexts, [postId]: '' });
         
         // Recharger les commentaires du post
@@ -357,14 +418,9 @@ export default function CommunityPage() {
               : post
           )
         );
-      } else {
-        const data = await res.json();
-        console.error('❌ Erreur commentaire:', data);
-        alert(data.error || 'Erreur lors de l\'ajout du commentaire');
       }
     } catch (error) {
-      console.error('❌ Erreur réseau commentaire:', error);
-      alert('Erreur lors de l\'ajout du commentaire');
+      console.error('Erreur lors de l\'ajout du commentaire');
     }
   };
 
@@ -373,7 +429,9 @@ export default function CommunityPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/community/posts/${postId}/comments/${commentId}`, {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      
+      const res = await fetch(`${backendUrl}/api/community/posts/${postId}/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -384,34 +442,18 @@ export default function CommunityPage() {
         // Recharger les commentaires du post
         await fetchPostComments(postId);
         
-        // Décrémenter le compteur
+        // Décrémenter le compteur (avec protection contre les négatifs)
         setPosts((prev) =>
           prev.map((post) =>
             post.id === postId
-              ? { ...post, commentsCount: post.commentsCount - 1 }
+              ? { ...post, commentsCount: Math.max(0, post.commentsCount - 1) }
               : post
           )
         );
-      } else {
-        const data = await res.json();
-        alert(data.error || 'Erreur lors de la suppression du commentaire');
       }
     } catch (error) {
-      console.error('Erreur:', error);
+      console.error('Erreur lors de la suppression');
     }
-  };
-
-  const getCategoryIcon = (iconName: string) => {
-    const icons: { [key: string]: any } = {
-      HeartPulse,
-      Sparkles,
-      Apple,
-      Dumbbell,
-      MessageSquare,
-      HelpCircle,
-    };
-    const Icon = icons[iconName] || HeartPulse;
-    return <Icon className="w-4 h-4" />;
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -561,14 +603,13 @@ export default function CommunityPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">Toutes les catégories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value}>
-                    <div className="flex items-center gap-2">
-                      {getCategoryIcon(cat.icon)}
-                      {cat.label}
-                    </div>
-                  </SelectItem>
-                ))}
+                {categories
+                  .filter((cat) => cat.isActive)
+                  .map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -667,10 +708,9 @@ export default function CommunityPage() {
 
                     <CardTitle className="mt-4">{post.title}</CardTitle>
                     <div className="flex items-center gap-2">
-                      {categories.find((c) => c.value === post.category) && (
+                      {post.category && (
                         <Badge variant="outline" className="flex items-center gap-1">
-                          {getCategoryIcon(categories.find((c) => c.value === post.category)!.icon)}
-                          {post.category}
+                          {post.category.name}
                         </Badge>
                       )}
                     </div>
@@ -685,7 +725,8 @@ export default function CommunityPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleToggleLike(post.id)}
-                        className={post.isLikedByCurrentUser ? 'text-red-600' : ''}
+                        disabled={likingPosts[post.id]}
+                        className={`${post.isLikedByCurrentUser ? 'text-red-600' : ''} ${likingPosts[post.id] ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <Heart
                           className={`w-4 h-4 mr-2 ${post.isLikedByCurrentUser ? 'fill-current' : ''}`}
@@ -836,25 +877,33 @@ export default function CommunityPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Catégorie</label>
-                  <Select
-                    value={newPost.category}
-                    onValueChange={(value) => setNewPost({ ...newPost, category: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir une catégorie" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          <div className="flex items-center gap-2">
-                            {getCategoryIcon(cat.icon)}
-                            {cat.label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <label className="block text-sm font-medium mb-2">Catégorie *</label>
+                  {categories.filter((cat) => cat.isActive).length === 0 ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm text-amber-800">
+                        ⚠️ Aucune catégorie disponible. Contactez un administrateur.
+                      </p>
+                    </div>
+                  ) : (
+                    <Select
+                      value={newPost.categoryId}
+                      onValueChange={(value) => setNewPost({ ...newPost, categoryId: value })}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choisir une catégorie" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories
+                          .filter((cat) => cat.isActive) 
+                          .map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id.toString()}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div>
@@ -920,21 +969,25 @@ export default function CommunityPage() {
                 <div>
                   <label className="block text-sm font-medium mb-2">Catégorie</label>
                   <Select
-                    value={editingPost.category}
-                    onValueChange={(value) => setEditingPost({ ...editingPost, category: value })}
+                    value={editingPost.category.id.toString()}
+                    onValueChange={(value) => {
+                      const selectedCat = categories.find(c => c.id.toString() === value);
+                      if (selectedCat) {
+                        setEditingPost({ ...editingPost, category: selectedCat });
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Choisir une catégorie" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          <div className="flex items-center gap-2">
-                            {getCategoryIcon(cat.icon)}
-                            {cat.label}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {categories
+                        .filter((cat) => cat.isActive)
+                        .map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id.toString()}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

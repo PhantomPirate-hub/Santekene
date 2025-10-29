@@ -23,7 +23,9 @@ import {
   Bell,
   Activity,
   UserCheck,
-  Coins
+  Coins,
+  Tags,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth, UserRole } from '@/context/AuthContext';
 
@@ -48,7 +50,6 @@ const navLinks = [
   { href: '/dashboard/medecin/historique', label: 'Historique', icon: FileText, roles: ['MEDECIN'] },
   { href: '/dashboard/medecin/rdv', label: 'Mes RDV', icon: Calendar, roles: ['MEDECIN'] },
   { href: '/dashboard/wallet', label: 'Mon Portefeuille', icon: Coins, roles: ['MEDECIN'] },
-  { href: '/dashboard/medecin/notifications', label: 'Notifications', icon: Bell, roles: ['MEDECIN'] },
   { href: '/dashboard/medecin/stats', label: 'Statistiques', icon: BarChart3, roles: ['MEDECIN'] },
 
   // Admin (Responsable de structure)
@@ -61,6 +62,8 @@ const navLinks = [
   { href: '/dashboard/superadmin', label: 'Dashboard', icon: LayoutDashboard, roles: ['SUPERADMIN'] },
   { href: '/dashboard/superadmin/facilities', label: 'Structures', icon: Shield, roles: ['SUPERADMIN'] },
   { href: '/dashboard/superadmin/users', label: 'Utilisateurs', icon: Users, roles: ['SUPERADMIN'] },
+  { href: '/dashboard/superadmin/categories', label: 'Catégories', icon: Tags, roles: ['SUPERADMIN'] },
+  { href: '/dashboard/community', label: 'Communauté', icon: MessageSquare, roles: ['SUPERADMIN'] },
   { href: '/dashboard/superadmin/monitoring', label: 'Monitoring', icon: Activity, roles: ['SUPERADMIN'] },
   { href: '/dashboard/superadmin/create-admin', label: 'Créer Admin', icon: ShieldCheck, roles: ['SUPERADMIN'] },
 ];

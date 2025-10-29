@@ -26,7 +26,7 @@ const medecinRegisterSchema = z.object({
   email: z.string().email("Email invalide"),
   phone: z.string().min(8, "Le numéro de téléphone doit contenir au moins 8 caractères"),
   speciality: z.string().min(2, "La fonction/spécialité est requise"),
-  facilityId: z.number({ invalid_type_error: "Vous devez sélectionner un établissement" }).int().positive("Vous devez sélectionner un établissement"),
+  facilityId: z.number().int().positive("Vous devez sélectionner un établissement"),
   location: z.string().min(2, "La résidence est requise"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
   confirmPassword: z.string(),
@@ -341,7 +341,7 @@ export const register = async (req: Request, res: Response) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ 
         error: 'Données invalides', 
-        details: error.errors.map(e => ({ field: e.path.join('.'), message: e.message })) 
+        details: (error as any).errors.map((e: any) => ({ field: e.path.join('.'), message: e.message })) 
       });
     }
     console.error('❌ Erreur lors de l\'inscription:', error);
@@ -415,7 +415,7 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Données invalides', details: error.errors });
+      return res.status(400).json({ error: 'Données invalides', details: (error as any).errors.map((e: any) => ({ field: e.path.join('.'), message: e.message })) });
     }
     console.error('Erreur lors de la connexion:', error);
     return res.status(500).json({ error: 'Erreur serveur lors de la connexion.' });

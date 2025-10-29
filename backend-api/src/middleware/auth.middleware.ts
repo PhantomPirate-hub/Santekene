@@ -50,3 +50,14 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
+
+// Alias pour compatibilité
+export const authMiddleware = protect;
+
+// Export du type AuthRequest pour réutilisation
+export type AuthRequest = Request & {
+  user: {
+    id: number;
+    role: string;
+  };
+};

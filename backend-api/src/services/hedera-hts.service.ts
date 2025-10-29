@@ -464,9 +464,15 @@ class HederaHtsService {
     try {
       const query = new TokenInfoQuery().setTokenId(this.tokenId!);
 
-      const tokenInfo = await hederaRetryService.retry(async () => {
+      const retryResult = await hederaRetryService.executeWithRetry(async () => {
         return await query.execute(this.client!);
-      });
+      }, undefined, 'HTS Token Info Query');
+
+      if (!retryResult.success || !retryResult.data) {
+        throw retryResult.error || new Error('Échec de la récupération des informations du token');
+      }
+
+      const tokenInfo = retryResult.data;
 
       const info = {
         name: tokenInfo.name,

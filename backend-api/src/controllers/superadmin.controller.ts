@@ -627,7 +627,7 @@ export const approveFacilityRequest = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
-    const requestId = parseInt(req.params.id);
+    const requestId = parseInt(req.params.id || '0');
 
     if (!userId) {
       return res.status(401).json({ error: 'Non authentifié' });
@@ -721,7 +721,7 @@ export const rejectFacilityRequest = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
-    const requestId = parseInt(req.params.id);
+    const requestId = parseInt(req.params.id || '0');
     const { reason } = req.body;
 
     if (!userId) {
@@ -951,7 +951,7 @@ export const toggleUserActive = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
-    const targetUserId = parseInt(req.params.id);
+    const targetUserId = parseInt(req.params.id || '0');
 
     if (!userId) {
       return res.status(401).json({ error: 'Non authentifié' });

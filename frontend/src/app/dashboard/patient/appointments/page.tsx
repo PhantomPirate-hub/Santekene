@@ -843,11 +843,21 @@ export default function PatientAppointmentsPage() {
                         <SelectValue placeholder="Sélectionnez un médecin" />
                       </SelectTrigger>
                       <SelectContent>
-                        {doctors.map((doctor) => (
-                          <SelectItem key={doctor.id} value={doctor.id.toString()}>
-                            {doctor.user.name}
-                          </SelectItem>
-                        ))}
+                        {doctors.length === 0 ? (
+                          <div className="p-3 text-sm text-gray-500">Aucun médecin disponible</div>
+                        ) : (
+                          doctors.map((doctor) => (
+                            <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{doctor.user.name}</span>
+                                <span className="text-xs text-gray-600">
+                                  {doctor.speciality}
+                                  {doctor.structure && ` • ${doctor.structure}`}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   )}

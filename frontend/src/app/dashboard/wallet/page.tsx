@@ -84,21 +84,21 @@ export default function WalletPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header - Balance */}
-      <div className="bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg p-6 text-white shadow-lg">
+      <div className="bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Mon Portefeuille KenePoints</h1>
-          <Coins className="w-10 h-10" />
+          <h1 className="text-2xl font-bold text-black">Mon Portefeuille KenePoints</h1>
+          <Coins className="w-10 h-10 text-black" />
         </div>
-        <p className="text-5xl font-bold mb-4">{balance.toFixed(2)} KNP</p>
+        <p className="text-5xl font-bold mb-4 text-black">{balance.toFixed(2)} KNP</p>
 
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="opacity-80">Total gagné</p>
-            <p className="text-xl font-semibold">{totalEarned.toFixed(2)} KNP</p>
+            <p className="text-black font-medium">Total gagné</p>
+            <p className="text-xl font-semibold text-black">{totalEarned.toFixed(2)} KNP</p>
           </div>
           <div>
-            <p className="opacity-80">Total dépensé</p>
-            <p className="text-xl font-semibold">{totalSpent.toFixed(2)} KNP</p>
+            <p className="text-black font-medium">Total dépensé</p>
+            <p className="text-xl font-semibold text-black">{totalSpent.toFixed(2)} KNP</p>
           </div>
         </div>
       </div>

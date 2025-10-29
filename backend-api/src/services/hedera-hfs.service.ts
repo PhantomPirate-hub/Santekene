@@ -167,14 +167,20 @@ class HederaHfsService {
       const certificateBuffer = Buffer.from(certificateJson, 'utf-8');
 
       // Soumettre la transaction avec retry
-      const result = await hederaRetryService.retry(async () => {
+      const retryResult = await hederaRetryService.executeWithRetry(async () => {
         // Pour les fichiers > 4KB, utiliser FileAppendTransaction
         if (certificateBuffer.length > 4096) {
           return this.storeChunkedCertificate(certificateBuffer);
         } else {
           return this.storeSingleCertificate(certificateBuffer);
         }
-      });
+      }, undefined, 'HFS Certificate Storage');
+
+      if (!retryResult.success || !retryResult.data) {
+        throw retryResult.error || new Error('Échec du stockage du certificat');
+      }
+
+      const result = retryResult.data;
 
       // Mettre en cache
       await hederaCacheService.set(cacheKey, JSON.stringify(result), 86400); // 24h
@@ -214,7 +220,8 @@ class HederaHfsService {
 
     const fileId = receipt.fileId!.toString();
     const txId = txResponse.transactionId.toString();
-    const cost = parseFloat(txResponse.transactionFee?.toTinybars() || '0') / 100000000;
+    // Note: transactionFee n'est plus disponible dans SDK récent
+    const cost = 0; // Coût estimé, nécessite un TransactionRecordQuery pour obtenir le coût réel
 
     return { fileId, txId, cost };
   }
@@ -246,7 +253,8 @@ class HederaHfsService {
     }
 
     const fileId = createReceipt.fileId!;
-    let totalCost = parseFloat(createResponse.transactionFee?.toTinybars() || '0') / 100000000;
+    // Note: transactionFee n'est plus disponible dans SDK récent
+    let totalCost = 0; // Coût estimé
 
     // Ajouter les chunks restants
     let offset = chunkSize;
@@ -265,7 +273,7 @@ class HederaHfsService {
         throw new Error(`Échec ajout chunk HFS: ${appendReceipt.status}`);
       }
 
-      totalCost += parseFloat(appendResponse.transactionFee?.toTinybars() || '0') / 100000000;
+      // totalCost += ... (transaction fee non disponible dans SDK récent)
       offset += chunkSize;
     }
 
@@ -296,10 +304,15 @@ class HederaHfsService {
     try {
       const query = new FileContentsQuery().setFileId(fileId);
 
-      const contents = await hederaRetryService.retry(async () => {
+      const retryResult = await hederaRetryService.executeWithRetry(async () => {
         return await query.execute(this.client!);
-      });
+      }, undefined, 'HFS Certificate Retrieval');
 
+      if (!retryResult.success || !retryResult.data) {
+        throw retryResult.error || new Error('Échec de la récupération du certificat');
+      }
+
+      const contents = retryResult.data;
       const certificateJson = contents.toString('utf-8');
       const certificate: FileCertificate = JSON.parse(certificateJson);
 

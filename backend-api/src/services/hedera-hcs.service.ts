@@ -109,7 +109,9 @@ class HederaHcsService {
         }
 
         const transactionId = tx.transactionId.toString();
-        const consensusTimestamp = receipt.consensusTimestamp?.toString();
+        // Note: consensusTimestamp n'est plus disponible sur Receipt dans SDK récent
+        // Il faudrait un TransactionRecordQuery pour l'obtenir
+        const consensusTimestamp = undefined;
 
         // Mettre en cache
         await hederaCacheService.cacheHcsTransaction(

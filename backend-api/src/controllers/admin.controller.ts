@@ -242,10 +242,14 @@ export const approveDoctorRequest = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
-    const doctorId = parseInt(req.params.id);
+    const doctorId = parseInt(req.params.id || '0');
 
     if (!userId) {
       return res.status(401).json({ error: 'Non authentifié' });
+    }
+
+    if (!doctorId || isNaN(doctorId)) {
+      return res.status(400).json({ error: 'ID médecin invalide' });
     }
 
     // Récupérer le profil Admin
@@ -303,11 +307,15 @@ export const rejectDoctorRequest = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
-    const doctorId = parseInt(req.params.id);
+    const doctorId = parseInt(req.params.id || '0');
     const { reason } = req.body;
 
     if (!userId) {
       return res.status(401).json({ error: 'Non authentifié' });
+    }
+
+    if (!doctorId || isNaN(doctorId)) {
+      return res.status(400).json({ error: 'ID médecin invalide' });
     }
 
     // Récupérer le profil Admin

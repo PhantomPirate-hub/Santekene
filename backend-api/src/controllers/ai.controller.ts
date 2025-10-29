@@ -21,8 +21,8 @@ export const getRecommendedDoctors = async (req: Request, res: Response) => {
     // Rechercher les médecins avec ces spécialités
     const doctors = await prisma.doctor.findMany({
       where: {
-        OR: specialtyList.map(specialty => ({
-          specialty: {
+        OR: specialtyList.map((specialty: string) => ({
+          speciality: {
             contains: specialty,
           },
         })),
@@ -94,7 +94,7 @@ export const getRecommendedHealthCenters = async (req: Request, res: Response) =
     const healthCenters = await prisma.healthCenter.findMany();
 
     const healthCentersWithDistance = healthCenters.map(center => {
-      const distance = calculateDistance(lat, lon, center.latitude, center.longitude);
+      const distance = calculateDistance(lat, lon, center.latitude || 0, center.longitude || 0);
       return {
         ...center,
         distance: Math.round(distance * 10) / 10, // Arrondir à 1 décimale

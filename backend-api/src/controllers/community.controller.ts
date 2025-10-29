@@ -10,7 +10,7 @@ import { prisma } from '../services/prisma.service.js';
  */
 export const getAllPosts = async (req: Request, res: Response) => {
   try {
-    const { category, search, page = '1', limit = '20' } = req.query;
+    const { categoryId, search, page = '1', limit = '20' } = req.query;
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
     const take = parseInt(limit as string);
@@ -19,8 +19,8 @@ export const getAllPosts = async (req: Request, res: Response) => {
       published: true,
     };
 
-    if (category) {
-      where.category = category as string;
+    if (categoryId) {
+      where.categoryId = parseInt(categoryId as string);
     }
 
     if (search) {
@@ -42,6 +42,13 @@ export const getAllPosts = async (req: Request, res: Response) => {
               name: true,
               role: true,
               avatar: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              isActive: true,
             },
           },
           _count: {
@@ -104,7 +111,7 @@ export const getPostById = async (req: Request, res: Response) => {
     const currentUser = (req as any).user;
 
     const post = await prisma.communityPost.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
         author: {
           select: {
@@ -170,13 +177,24 @@ export const createPost = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
-    const { title, content, category, imageUrl } = req.body;
+    const { title, content, categoryId, imageUrl } = req.body;
 
     // Validation
-    if (!title || !content || !category) {
-      return res.status(400).json({
-        error: 'Titre, contenu et catégorie sont requis',
-      });
+    if (!title || !content || !categoryId) {
+      return res.status(400).json({ error: 'Titre, contenu et catégorie sont requis' });
+    }
+
+    // Vérifier que la catégorie existe et est active
+    const category = await prisma.communityCategory.findUnique({
+      where: { id: parseInt(categoryId) },
+    });
+
+    if (!category) {
+      return res.status(404).json({ error: 'Catégorie non trouvée' });
+    }
+
+    if (!category.isActive) {
+      return res.status(400).json({ error: 'Cette catégorie n\'est pas disponible' });
     }
 
     // Créer le post
@@ -185,7 +203,7 @@ export const createPost = async (req: Request, res: Response) => {
         authorId: userId,
         title,
         content,
-        category,
+        categoryId: parseInt(categoryId),
         imageUrl: imageUrl || null,
         published: true,
       },
@@ -196,6 +214,13 @@ export const createPost = async (req: Request, res: Response) => {
             name: true,
             role: true,
             avatar: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
           },
         },
       },
@@ -209,6 +234,8 @@ export const createPost = async (req: Request, res: Response) => {
         details: `Post créé: ${title}`,
       },
     });
+
+    console.log('✅ [Backend - createPost] Post créé avec succès:', post.id);
 
     return res.status(201).json({
       message: 'Post créé avec succès',
@@ -233,11 +260,11 @@ export const updatePost = async (req: Request, res: Response) => {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
     const { id } = req.params;
-    const { title, content, category, imageUrl } = req.body;
+    const { title, content, categoryId, imageUrl } = req.body;
 
     // Vérifier que le post existe et appartient à l'utilisateur
     const post = await prisma.communityPost.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
     });
 
     if (!post) {
@@ -248,13 +275,28 @@ export const updatePost = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Non autorisé' });
     }
 
+    // Si categoryId est fourni, vérifier que la catégorie existe et est active
+    if (categoryId) {
+      const category = await prisma.communityCategory.findUnique({
+        where: { id: parseInt(categoryId) },
+      });
+
+      if (!category) {
+        return res.status(404).json({ error: 'Catégorie non trouvée' });
+      }
+
+      if (!category.isActive) {
+        return res.status(400).json({ error: 'Cette catégorie n\'est pas disponible' });
+      }
+    }
+
     // Mettre à jour le post
     const updatedPost = await prisma.communityPost.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       data: {
         ...(title && { title }),
         ...(content && { content }),
-        ...(category && { category }),
+        ...(categoryId && { categoryId: parseInt(categoryId) }),
         ...(imageUrl !== undefined && { imageUrl }),
       },
       include: {
@@ -264,6 +306,13 @@ export const updatePost = async (req: Request, res: Response) => {
             name: true,
             role: true,
             avatar: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
           },
         },
         _count: {
@@ -309,7 +358,7 @@ export const deletePost = async (req: Request, res: Response) => {
 
     // Vérifier que le post existe
     const post = await prisma.communityPost.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
     });
 
     if (!post) {
@@ -323,7 +372,7 @@ export const deletePost = async (req: Request, res: Response) => {
 
     // Supprimer le post (cela supprimera aussi les commentaires et likes en cascade)
     await prisma.communityPost.delete({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
     });
 
     // Enregistrer dans les logs d'audit
@@ -355,7 +404,7 @@ export const toggleLike = async (req: Request, res: Response) => {
 
     // Vérifier que le post existe
     const post = await prisma.communityPost.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
     });
 
     if (!post) {
@@ -366,11 +415,13 @@ export const toggleLike = async (req: Request, res: Response) => {
     const existingLike = await prisma.communityLike.findUnique({
       where: {
         postId_userId: {
-          postId: parseInt(id),
+          postId: parseInt(id || '0'),
           userId,
         },
       },
     });
+
+    let updatedPost;
 
     if (existingLike) {
       // Unliker
@@ -380,36 +431,41 @@ export const toggleLike = async (req: Request, res: Response) => {
         },
       });
 
-      // Décrémenter le compteur
-      await prisma.communityPost.update({
-        where: { id: parseInt(id) },
+      // Compter les likes réels pour éviter les négatifs
+      const realLikesCount = await prisma.communityLike.count({
+        where: { postId: parseInt(id || '0') },
+      });
+
+      updatedPost = await prisma.communityPost.update({
+        where: { id: parseInt(id || '0') },
         data: {
-          likesCount: {
-            decrement: 1,
-          },
+          likesCount: realLikesCount,
         },
       });
 
       return res.status(200).json({
         message: 'Like retiré',
         isLiked: false,
+        likesCount: updatedPost.likesCount,
       });
     } else {
       // Liker
       await prisma.communityLike.create({
         data: {
-          postId: parseInt(id),
+          postId: parseInt(id || '0'),
           userId,
         },
       });
 
-      // Incrémenter le compteur
-      await prisma.communityPost.update({
-        where: { id: parseInt(id) },
+      // Compter les likes réels
+      const realLikesCount = await prisma.communityLike.count({
+        where: { postId: parseInt(id || '0') },
+      });
+
+      updatedPost = await prisma.communityPost.update({
+        where: { id: parseInt(id || '0') },
         data: {
-          likesCount: {
-            increment: 1,
-          },
+          likesCount: realLikesCount,
         },
       });
 
@@ -429,6 +485,7 @@ export const toggleLike = async (req: Request, res: Response) => {
       return res.status(200).json({
         message: 'Post liké',
         isLiked: true,
+        likesCount: updatedPost.likesCount,
       });
     }
   } catch (error) {
@@ -454,7 +511,7 @@ export const addComment = async (req: Request, res: Response) => {
 
     // Vérifier que le post existe
     const post = await prisma.communityPost.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id  || '0') },
     });
 
     if (!post) {
@@ -464,7 +521,7 @@ export const addComment = async (req: Request, res: Response) => {
     // Créer le commentaire
     const comment = await prisma.communityComment.create({
       data: {
-        postId: parseInt(id),
+        postId: parseInt(id || '0'),
         authorId: userId,
         content,
       },
@@ -482,7 +539,7 @@ export const addComment = async (req: Request, res: Response) => {
 
     // Incrémenter le compteur de commentaires
     await prisma.communityPost.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       data: {
         commentsCount: {
           increment: 1,
@@ -524,7 +581,7 @@ export const deleteComment = async (req: Request, res: Response) => {
 
     // Vérifier que le commentaire existe
     const comment = await prisma.communityComment.findUnique({
-      where: { id: parseInt(commentId) },
+      where: { id: parseInt(commentId || '0') },
     });
 
     if (!comment) {
@@ -538,12 +595,12 @@ export const deleteComment = async (req: Request, res: Response) => {
 
     // Supprimer le commentaire
     await prisma.communityComment.delete({
-      where: { id: parseInt(commentId) },
+      where: { id: parseInt(commentId || '0') },
     });
 
     // Décrémenter le compteur de commentaires
     await prisma.communityPost.update({
-      where: { id: parseInt(postId) },
+      where: { id: parseInt(postId || '0') },
       data: {
         commentsCount: {
           decrement: 1,

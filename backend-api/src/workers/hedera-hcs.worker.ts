@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import * as dotenv from 'dotenv';
 import { hederaQueueService, HcsJobData, HederaJobType } from '../services/hedera-queue.service.js';
 import { hederaHcsService } from '../services/hedera-hcs.service.js';
@@ -140,7 +140,7 @@ class HederaHcsWorker {
             entityId,
             topicId: process.env.HEDERA_HCS_TOPIC_ID!,
             status: 'SUCCESS',
-            consensusTimestamp: result.consensusTimestamp,
+            consensusTimestamp: result.consensusTimestamp || null,
             cost: 0.0001, // Coût estimé d'un message HCS
             metadata: JSON.stringify(metadata),
           },

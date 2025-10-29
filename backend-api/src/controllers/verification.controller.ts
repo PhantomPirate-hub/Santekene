@@ -16,7 +16,7 @@ export const verifyConsultation = async (req: Request, res: Response) => {
 
     // Récupérer la consultation
     const consultation = await prisma.consultation.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
         patient: {
           include: {
@@ -42,8 +42,8 @@ export const verifyConsultation = async (req: Request, res: Response) => {
     // Calculer le hash actuel
     const currentData = {
       diagnosis: consultation.diagnosis,
-      treatment: consultation.treatment,
       notes: consultation.notes,
+      allergies: consultation.allergies,
       date: consultation.date,
     };
     const currentHash = crypto.createHash('sha256').update(JSON.stringify(currentData)).digest('hex');
@@ -104,9 +104,9 @@ export const verifyPrescription = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const prescription = await prisma.prescription.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
-        items: true,
+        medications: true,
         consultation: {
           include: {
             patient: {
@@ -134,7 +134,7 @@ export const verifyPrescription = async (req: Request, res: Response) => {
 
     // Calculer le hash actuel
     const currentData = {
-      medications: prescription.items,
+      medications: prescription.medications,
       instructions: prescription.instructions,
       duration: prescription.duration,
       issuedAt: prescription.issuedAt,
@@ -175,7 +175,7 @@ export const verifyPrescription = async (req: Request, res: Response) => {
       metadata: {
         patientName: prescription.consultation.patient.user.name,
         doctorName: prescription.consultation.doctor.user.name,
-        medicationsCount: prescription.items.length,
+        medicationsCount: prescription.medications.length,
       },
     });
   } catch (error) {
@@ -193,7 +193,7 @@ export const verifyDocument = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const document = await prisma.document.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
         patient: {
           include: {

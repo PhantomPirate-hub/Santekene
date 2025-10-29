@@ -152,16 +152,16 @@ export default function ActivitiesPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-xs">
-                        {format(new Date(consultation.createdAt), 'dd MMM', { locale: fr })}
+                        {format(new Date(consultation.date), 'dd MMM', { locale: fr })}
                       </Badge>
                     </div>
                     <div className="text-sm space-y-1">
                       <p className="text-texte-principal">
-                        <span className="font-medium">Motif:</span> {consultation.motif}
+                        <span className="font-medium">Notes:</span> {consultation.notes || 'Aucune note'}
                       </p>
-                      {consultation.diagnostic && (
+                      {consultation.diagnosis && (
                         <p className="text-texte-principal">
-                          <span className="font-medium">Diagnostic:</span> {consultation.diagnostic}
+                          <span className="font-medium">Diagnostic:</span> {consultation.diagnosis}
                         </p>
                       )}
                     </div>

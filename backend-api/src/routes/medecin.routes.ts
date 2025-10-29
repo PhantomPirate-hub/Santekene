@@ -56,7 +56,17 @@ router.post('/consultations', createConsultation);
 router.put('/consultations/:id', updateConsultation);
 
 // Upload de documents de consultation (avec multer)
-router.post('/consultations/documents', upload.single('file'), uploadConsultationDocument);
+router.post('/consultations/documents', (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      // Erreur Multer (type de fichier, taille, etc.)
+      return res.status(400).json({ 
+        error: err.message || 'Erreur lors de l\'upload du fichier' 
+      });
+    }
+    next();
+  });
+}, uploadConsultationDocument);
 
 // ============================================
 // GESTION DES RENDEZ-VOUS (Nouveau)

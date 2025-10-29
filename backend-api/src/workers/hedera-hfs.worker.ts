@@ -52,7 +52,7 @@ export function initializeHfsWorker(): Worker<HfsCertificateJob> {
         );
 
         // Mettre en cache le certificat
-        await hederaCacheService.cacheHfsFileId(certificate.fileHash, result.fileId);
+        await hederaCacheService.cacheHfsFile(certificate.fileHash, result.fileId);
 
         console.log(
           `✅ [HFS Worker] Certificat document ${documentId} stocké: ${result.fileId}`

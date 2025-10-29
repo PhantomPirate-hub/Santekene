@@ -25,7 +25,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Aucun fichier fourni' });
     }
 
-    const { patientId, type, description } = req.body;
+    const { patientId, type, description, consultationId } = req.body;
 
     // Validation
     if (!patientId || !type) {
@@ -91,6 +91,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
     const document = await prisma.document.create({
       data: {
         patientId: parseInt(patientId),
+        consultationId: consultationId ? parseInt(consultationId) : null, // Lier à la consultation si fourni
         type,
         url: fileUpload.url, // URL MinIO (sera mis à jour avec FileId Hedera via worker)
         fileUrl: fileUpload.url, // URL MinIO permanente

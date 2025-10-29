@@ -333,7 +333,7 @@ export default function DSEPage() {
                     <div className="flex items-center space-x-4 flex-1">
                       <FileText className="w-8 h-8 text-bleu-clair" />
                       <div className="flex-1">
-                        <p className="font-medium text-texte-principal">{document.title}</p>
+                        <p className="font-medium text-texte-principal">{document.title || document.name || document.type}</p>
                         <p className="text-sm text-texte-principal/60">
                           {document.type} - {formatDate(document.uploadedAt)}
                         </p>

@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:3001'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(helmet()); // Sécurise les en-têtes HTTP
@@ -26,8 +26,8 @@ app.use(helmet.contentSecurityPolicy({
     connectSrc: ["'self'", "http://localhost:3001"], // Autorise les connexions à l'API elle-même
   },
 }));
-app.use(express.json()); // Parse le JSON des requêtes entrantes
-app.use(express.urlencoded({ extended: true })); // Parse les requêtes URL-encoded
+app.use(express.json({ limit: '10mb' })); // Augmenter la limite pour les fichiers base64
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Augmenter la limite pour les URL-encoded
 
 // Servir les fichiers statiques uploadés
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -50,6 +50,7 @@ import superadminRoutes from './routes/superadmin.routes.js';
 import elearningRoutes from './routes/elearning.routes.js';
 import kenepointsRoutes from './routes/kenepoints.routes.js';
 import communityRoutes from './routes/community.routes.js';
+import categoryRoutes from './routes/category.routes.js';
 import healthCenterRoutes from './routes/healthcenter.routes.js';
 import hederaRoutes from './routes/hedera.routes.js';
 import aiRoutes from './routes/ai.routes.js';
@@ -98,6 +99,7 @@ app.use('/api/wallet', walletRoutes);
 
 // Communauté
 app.use('/api/community', communityRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Services externes
 app.use('/api/healthcenters', healthCenterRoutes);

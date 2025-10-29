@@ -51,7 +51,11 @@ router.get('/test-prescriptions', async (req: any, res: any) => {
         doctor: {
           include: { user: { select: { name: true } } },
         },
-        prescription: true,
+        prescription: {
+          include: {
+            medications: true,
+          },
+        },
       },
     });
     
@@ -63,13 +67,13 @@ router.get('/test-prescriptions', async (req: any, res: any) => {
         specialty: c.doctor.speciality, // ✅ Correction: speciality (DB) → specialty (API)
       },
       diagnosis: c.diagnosis || 'Non spécifié',
-      medications: [{
-        name: c.prescription!.medication,
-        dosage: c.prescription!.dosage,
-        frequency: '2 fois par jour',
-        duration: c.prescription!.duration,
-        instructions: 'Suivre les instructions du médecin',
-      }],
+      medications: c.prescription!.medications.map(med => ({
+        name: med.name,
+        dosage: med.dosage,
+        frequency: med.frequency || '2 fois par jour',
+        duration: med.duration,
+        instructions: med.instructions || 'Suivre les instructions du médecin',
+      })),
       notes: `Ordonnance émise le ${new Date(c.prescription!.issuedAt).toLocaleDateString('fr-FR')}`,
       status: 'ACTIVE',
     }));

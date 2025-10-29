@@ -24,14 +24,17 @@ const storage = multer.diskStorage({
 
 // Filtrer les types de fichiers acceptés
 const fileFilter = (req: any, file: any, cb: any) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
+  // Types de fichiers acceptés pour les documents médicaux
+  const allowedExtensions = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|csv|svg|webp|bmp|tiff|tif/;
+  const allowedMimeTypes = /image\/.*|application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document|application\/vnd\.ms-excel|application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet|text\/plain|text\/csv/;
+  
+  const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedMimeTypes.test(file.mimetype);
 
-  if (mimetype && extname) {
+  if (mimetype || extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Seuls les fichiers images (JPEG, PNG, GIF) et PDF sont autorisés'));
+    cb(new Error(`Type de fichier non autorisé: ${file.mimetype}. Formats acceptés: images, PDF, Word, Excel, texte`));
   }
 };
 

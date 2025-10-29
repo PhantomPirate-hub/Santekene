@@ -82,11 +82,13 @@ export const createPrescription = async (req: Request, res: Response) => {
       // Enregistrer la transaction Hedera
       await prisma.hederaTransaction.create({
         data: {
-          transactionId: nftData.transactionId,
-          type: 'NFT_MINT',
+          txId: nftData.transactionId,
+          type: 'HTS_MINT_NFT',
           userId: userId,
-          amount: 1,
-          details: `NFT Prescription créé - Token: ${nftTokenId}, Serial: ${nftSerialNumber}`,
+          entityId: parseInt(consultationId),
+          status: 'SUCCESS',
+          cost: 0,
+          metadata: `NFT Prescription créé - Token: ${nftTokenId}, Serial: ${nftSerialNumber}`,
         },
       });
     } catch (error) {
@@ -102,9 +104,9 @@ export const createPrescription = async (req: Request, res: Response) => {
         duration: duration || '',
         nftTokenId,
         nftSerialNumber,
-        items: {
+        medications: {
           create: medications.map((med: any) => ({
-            medication: med.medication,
+            name: med.medication || med.name,
             dosage: med.dosage,
             frequency: med.frequency,
             duration: med.duration || duration || '',
@@ -113,7 +115,7 @@ export const createPrescription = async (req: Request, res: Response) => {
         },
       },
       include: {
-        items: true,
+        medications: true,
         consultation: {
           include: {
             patient: {
@@ -210,9 +212,9 @@ export const getPrescriptionById = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const prescription = await prisma.prescription.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
-        items: true,
+        medications: true,
         consultation: {
           include: {
             patient: {
@@ -294,7 +296,7 @@ export const updatePrescription = async (req: Request, res: Response) => {
 
     // Vérifier que la prescription existe et appartient au médecin
     const prescription = await prisma.prescription.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
         consultation: true,
       },
@@ -316,10 +318,10 @@ export const updatePrescription = async (req: Request, res: Response) => {
     if (duration !== undefined) updateData.duration = duration;
 
     const updatedPrescription = await prisma.prescription.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       data: updateData,
       include: {
-        items: true,
+        medications: true,
         consultation: {
           include: {
             patient: {
@@ -349,18 +351,18 @@ export const updatePrescription = async (req: Request, res: Response) => {
       },
     });
 
-    // Si des médicaments sont fournis, mettre à jour les items
+    // Si des médicaments sont fournis, mettre à jour
     if (medications && Array.isArray(medications)) {
-      // Supprimer les anciens items
-      await prisma.prescriptionItem.deleteMany({
-        where: { prescriptionId: parseInt(id) },
+      // Supprimer les anciens médicaments
+      await prisma.medication.deleteMany({
+        where: { prescriptionId: parseInt(id || '0') },
       });
 
-      // Créer les nouveaux items
-      await prisma.prescriptionItem.createMany({
+      // Créer les nouveaux médicaments
+      await prisma.medication.createMany({
         data: medications.map((med: any) => ({
-          prescriptionId: parseInt(id),
-          medication: med.medication,
+          prescriptionId: parseInt(id || '0'),
+          name: med.medication || med.name,
           dosage: med.dosage,
           frequency: med.frequency,
           duration: med.duration || duration || '',
@@ -401,16 +403,16 @@ export const deletePrescription = async (req: Request, res: Response) => {
     }
 
     const prescription = await prisma.prescription.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
     });
 
     if (!prescription) {
       return res.status(404).json({ error: 'Prescription non trouvée' });
     }
 
-    // Supprimer la prescription (cela supprimera aussi les items en cascade)
+    // Supprimer la prescription (cela supprimera aussi les médicaments en cascade)
     await prisma.prescription.delete({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
     });
 
     // Enregistrer dans les logs d'audit
@@ -444,7 +446,7 @@ export const getPatientPrescriptions = async (req: Request, res: Response) => {
       const patient = await prisma.patient.findUnique({
         where: { userId: currentUser.id },
       });
-      if (!patient || patient.id !== parseInt(patientId)) {
+      if (!patient || patient.id !== parseInt(patientId || '0')) {
         return res.status(403).json({ error: 'Accès non autorisé' });
       }
     }
@@ -452,11 +454,11 @@ export const getPatientPrescriptions = async (req: Request, res: Response) => {
     const prescriptions = await prisma.prescription.findMany({
       where: {
         consultation: {
-          patientId: parseInt(patientId),
+          patientId: parseInt(patientId || '0'),
         },
       },
       include: {
-        items: true,
+        medications: true,
         consultation: {
           include: {
             doctor: {
@@ -495,10 +497,10 @@ export const verifyPrescriptionNFT = async (req: Request, res: Response) => {
     const prescription = await prisma.prescription.findFirst({
       where: {
         nftTokenId: tokenId,
-        nftSerialNumber: parseInt(serialNumber),
+        nftSerialNumber: parseInt(serialNumber || '0'),
       },
       include: {
-        items: true,
+        medications: true,
         consultation: {
           include: {
             patient: {
@@ -539,10 +541,10 @@ export const verifyPrescriptionNFT = async (req: Request, res: Response) => {
       verified: true,
       prescription: {
         id: prescription.id,
-        date: prescription.createdAt,
+        date: prescription.issuedAt,
         patient: prescription.consultation.patient.user.name,
         doctor: prescription.consultation.doctor.user.name,
-        medications: prescription.items,
+        medications: prescription.medications,
         nft: {
           tokenId: prescription.nftTokenId,
           serialNumber: prescription.nftSerialNumber,

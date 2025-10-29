@@ -557,7 +557,7 @@ export default function RegisterPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="facility-document">Document de validation (Agrément, Licence...) <span className="text-gray-500">(Optionnel)</span></Label>
+                          <Label htmlFor="facility-document">Document de validation (Agrément, Licence...) *</Label>
                           <div className="flex items-center gap-2">
                             <Input
                               id="facility-document"
@@ -565,6 +565,7 @@ export default function RegisterPage() {
                               accept=".pdf,.jpg,.jpeg,.png"
                               onChange={handleFileUpload}
                               className="flex-1"
+                              required
                             />
                             {adminData.documentUrl && (
                               <CheckCircle className="w-5 h-5 text-green-500" />

@@ -441,6 +441,12 @@ export const getConsultationsHistory = async (req: Request, res: Response) => {
             },
           },
         },
+        documents: true, // ✅ Inclure les documents liés à la consultation
+        prescription: {
+          include: {
+            medications: true,
+          },
+        },
       },
       orderBy: {
         date: 'desc',
@@ -451,7 +457,7 @@ export const getConsultationsHistory = async (req: Request, res: Response) => {
     if (patientName) {
       const searchTerm = (patientName as string).toLowerCase();
       consultations = consultations.filter((c) =>
-        c.patient.user.name.toLowerCase().includes(searchTerm)
+        c.patient.user?.name?.toLowerCase().includes(searchTerm) || false
       );
     }
 
@@ -472,6 +478,12 @@ export const getConsultationsHistory = async (req: Request, res: Response) => {
         bloodGroup: c.patient.bloodGroup,
         birthDate: c.patient.birthDate,
       },
+      documents: c.documents || [], // ✅ Inclure les documents
+      prescription: c.prescription ? {
+        id: c.prescription.id,
+        issuedAt: c.prescription.issuedAt,
+        medications: c.prescription.medications || [],
+      } : null,
     }));
 
     return res.status(200).json({
@@ -492,7 +504,7 @@ export const updateConsultation = async (req: Request, res: Response) => {
   try {
     const currentUser = (req as any).user;
     const userId = currentUser?.id;
-    const consultationId = parseInt(req.params.id);
+    const consultationId = parseInt(req.params.id || '0');
 
     if (!userId) {
       return res.status(401).json({ error: 'Non authentifié' });
@@ -606,7 +618,7 @@ export const getDoctorNotifications = async (req: Request, res: Response) => {
           },
         },
       },
-      orderBy: { requestDate: 'desc' },
+      orderBy: { createdAt: 'desc' },
       take: 10,
     });
 
@@ -624,7 +636,7 @@ export const getDoctorNotifications = async (req: Request, res: Response) => {
         type: 'dse_access',
         title: 'Demande d\'accès DSE',
         message: `${req.patient.user.name} demande l'accès à son DSE`,
-        date: req.requestDate,
+        date: req.createdAt,
         link: '/dashboard/medecin/consultations',
       })),
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -851,7 +863,7 @@ export const checkDseAccess = async (req: Request, res: Response) => {
       where: {
         doctorId_patientId: {
           doctorId: doctor.id,
-          patientId: parseInt(patientId),
+          patientId: parseInt(patientId || '0'),
         },
       },
     });
@@ -865,7 +877,7 @@ export const checkDseAccess = async (req: Request, res: Response) => {
         error: 'Accès non autorisé au DSE de ce patient',
         debug: {
           doctorId: doctor.id,
-          patientId: parseInt(patientId),
+          patientId: parseInt(patientId || '0'),
           accessRequestFound: !!accessRequest,
           status: accessRequest?.status || 'N/A'
         }
@@ -923,7 +935,7 @@ export const getPatientDse = async (req: Request, res: Response) => {
       where: {
         doctorId_patientId: {
           doctorId: doctor.id,
-          patientId: parseInt(patientId),
+          patientId: parseInt(patientId || '0'),
         },
       },
     });
@@ -934,7 +946,7 @@ export const getPatientDse = async (req: Request, res: Response) => {
 
     // Récupérer le DSE complet
     const patient = await prisma.patient.findUnique({
-      where: { id: parseInt(patientId) },
+      where: { id: parseInt(patientId || '0') },
       include: {
         user: {
           select: {
@@ -1134,15 +1146,27 @@ export const uploadConsultationDocument = async (req: Request, res: Response) =>
     // Construire l'URL du fichier uploadé
     const fileUrl = `http://localhost:3001/uploads/${req.file.filename}`;
 
+    // Calculer le hash SHA-256 du fichier (lire depuis le disque car multer utilise diskStorage)
+    const fs = await import('fs');
+    const crypto = await import('crypto');
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
     // Créer le document
     const document = await prisma.document.create({
       data: {
         patientId: parseInt(patientId),
         consultationId: consultationId ? parseInt(consultationId) : null,
         type,
+        name: req.file.originalname,
+        title: title || req.file.originalname,
         url: fileUrl,
-        title: title || type,
-        hash: `HASH-${Date.now()}`, // À remplacer par un vrai hash
+        fileUrl: fileUrl,
+        hash: fileHash,
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedBy: doctorId,
+        description: title || type,
       },
     });
 
@@ -1152,7 +1176,10 @@ export const uploadConsultationDocument = async (req: Request, res: Response) =>
     });
   } catch (error) {
     console.error('Erreur upload document:', error);
-    return res.status(500).json({ error: 'Erreur serveur' });
+    return res.status(500).json({ 
+      error: 'Erreur serveur',
+      details: (error as Error).message 
+    });
   }
 };
 
@@ -1290,7 +1317,7 @@ export const acceptAppointment = async (req: Request, res: Response) => {
 
     // Vérifier que le RDV existe et appartient au médecin
     const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
         patient: {
           include: {
@@ -1323,7 +1350,7 @@ export const acceptAppointment = async (req: Request, res: Response) => {
 
     // Mettre à jour le rendez-vous
     const updatedAppointment = await prisma.appointment.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       data: {
         status: 'CONFIRMED',
         date: new Date(date),
@@ -1387,7 +1414,7 @@ export const rejectAppointment = async (req: Request, res: Response) => {
 
     // Vérifier que le RDV existe et appartient au médecin
     const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
     });
 
     if (!appointment) {
@@ -1404,7 +1431,7 @@ export const rejectAppointment = async (req: Request, res: Response) => {
 
     // Mettre à jour le rendez-vous
     const updatedAppointment = await prisma.appointment.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       data: {
         status: 'REJECTED',
         rejectedAt: new Date(),
@@ -1524,7 +1551,7 @@ export const generateVideoLink = async (req: Request, res: Response) => {
 
     // Vérifier que le RDV existe et appartient au médecin
     const appointment = await prisma.appointment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       include: {
         patient: true,
       },
@@ -1552,7 +1579,7 @@ export const generateVideoLink = async (req: Request, res: Response) => {
 
     // Mettre à jour le RDV
     const updatedAppointment = await prisma.appointment.update({
-      where: { id: parseInt(id) },
+      where: { id: parseInt(id || '0') },
       data: {
         videoRoomId,
         videoLink,

@@ -91,8 +91,6 @@ export default function MedecinDsePage() {
   useEffect(() => {
     const checkAccessAndLoadDse = async () => {
       try {
-        console.log('🔍 [Frontend] Vérification accès pour patientId:', patientId);
-        
         // Vérifier l'accès
         const accessResponse = await fetch(
           `http://localhost:3001/api/medecin/dse-access/check/${patientId}`,
@@ -105,7 +103,7 @@ export default function MedecinDsePage() {
 
         if (!accessResponse.ok) {
           const errorData = await accessResponse.json();
-          console.error('❌ [Frontend] Erreur d\'accès:', errorData);
+          console.error('Erreur d\'accès:', errorData);
           setAccessError(JSON.stringify(errorData.debug || errorData, null, 2));
           toast.error(errorData.error || 'Vous n\'avez pas accès au DSE de ce patient');
           setLoading(false);
@@ -113,7 +111,6 @@ export default function MedecinDsePage() {
         }
 
         const accessData = await accessResponse.json();
-        console.log('✅ [Frontend] Accès vérifié:', accessData);
         setHasAccess(accessData.hasAccess);
 
         if (accessData.hasAccess) {
@@ -129,14 +126,13 @@ export default function MedecinDsePage() {
 
           if (dseResponse.ok) {
             const dseData = await dseResponse.json();
-            console.log('✅ [Frontend] DSE chargé:', dseData.patient.user.name);
             setPatient(dseData.patient);
             // Mettre à jour le titre de la page
             document.title = `DSE de ${dseData.patient.user.name} - Santé Kènè`;
           }
         }
       } catch (error) {
-        console.error('❌ [Frontend] Erreur:', error);
+        console.error('Erreur:', error);
         toast.error('Erreur lors du chargement du DSE');
         setAccessError(String(error));
       } finally {
@@ -231,13 +227,19 @@ export default function MedecinDsePage() {
           formData.append('type', documentMetadata.type || 'Document');
           formData.append('title', documentMetadata.title || file.name);
 
-          await fetch('http://localhost:3001/api/medecin/consultations/documents', {
+          const uploadResponse = await fetch('http://localhost:3001/api/medecin/consultations/documents', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
             },
             body: formData,
           });
+
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json().catch(() => ({}));
+            console.error('Erreur upload document:', errorData);
+            throw new Error(errorData.error || 'Erreur lors de l\'upload du document');
+          }
         }
       }
 
@@ -252,8 +254,9 @@ export default function MedecinDsePage() {
 
       // Recharger le DSE pour voir la nouvelle consultation
       window.location.reload();
-    } catch (error) {
-      toast.error('Erreur lors de l\'enregistrement de la consultation');
+    } catch (error: any) {
+      const errorMessage = error.message || 'Erreur lors de l\'enregistrement de la consultation';
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -520,7 +523,7 @@ export default function MedecinDsePage() {
             <div className="border-2 border-purple-200 rounded-lg p-4 bg-purple-50">
               <Label className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-purple-600" />
-                Documents d'analyse (PDF/Images)
+                Documents médicaux
               </Label>
 
               {/* Liste des fichiers ajoutés */}
@@ -577,7 +580,7 @@ export default function MedecinDsePage() {
                   type="file"
                   id="file-upload"
                   multiple
-                  accept="image/*,application/pdf"
+                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
                   onChange={handleAddDocument}
                   className="hidden"
                 />
@@ -587,7 +590,7 @@ export default function MedecinDsePage() {
                     Cliquez pour sélectionner des fichiers
                   </p>
                   <p className="text-xs text-texte-principal/60">
-                    PDF, JPG, PNG (max 10 MB par fichier)
+                    Images, PDF, Word, Excel, Texte (max 10 MB par fichier)
                   </p>
                 </label>
               </div>
@@ -797,7 +800,7 @@ export default function MedecinDsePage() {
                       <div className="flex items-center space-x-4 flex-1">
                         <FileText className="w-8 h-8 text-bleu-clair" />
                         <div className="flex-1">
-                          <p className="font-medium text-texte-principal">{document.title || document.type}</p>
+                          <p className="font-medium text-texte-principal">{document.title || document.name || document.type}</p>
                           <p className="text-sm text-texte-principal/60">
                             {document.type} - {new Date(document.uploadedAt).toLocaleDateString('fr-FR')}
                           </p>
