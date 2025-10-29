@@ -1,17 +1,23 @@
 import express from 'express';
 import * as walletController from '../controllers/wallet.controller.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { protect } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 // Toutes les routes nécessitent l'authentification
-router.use(authMiddleware);
+router.use(protect);
 
-// Solde de l'utilisateur connecté
+// Portefeuille complet (balance + badge + historique)
+router.get('/info', walletController.getWalletInfo);
+
+// Solde uniquement
 router.get('/balance', walletController.getUserBalance);
 
 // Historique des transactions
 router.get('/transactions', walletController.getUserTransactions);
+
+// Niveaux de badges (explications)
+router.get('/badge-levels', walletController.getBadgeLevels);
 
 // Leaderboard (Top utilisateurs par balance)
 router.get('/leaderboard', walletController.getLeaderboard);

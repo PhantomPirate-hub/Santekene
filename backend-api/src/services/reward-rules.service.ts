@@ -1,4 +1,7 @@
 import { hederaHtsService, RewardData } from './hedera-hts.service.js';
+import { hederaHcsService } from './hedera-hcs.service.js';
+import { HcsMessageBuilder } from './hcs-message-builder.service.js';
+import { HcsEventType, HcsEntityType } from '../types/hedera-hcs.types.js';
 import { prisma } from './prisma.service.js';
 import * as dotenv from 'dotenv';
 
@@ -21,17 +24,18 @@ export enum RewardAction {
 
 /**
  * Configuration des récompenses (montants en KNP)
+ * Modèle "Gain uniquement" - Personne ne dépense, tout le monde gagne
  */
 const REWARD_AMOUNTS: Record<RewardAction, number> = {
-  [RewardAction.CONSULTATION_COMPLETED]: parseFloat(process.env.KNP_REWARD_CONSULTATION || '20'),
-  [RewardAction.DOCUMENT_UPLOADED]: parseFloat(process.env.KNP_REWARD_DOCUMENT_UPLOAD || '5'),
-  [RewardAction.DSE_SHARED]: parseFloat(process.env.KNP_REWARD_DSE_SHARE || '10'),
-  [RewardAction.APPOINTMENT_COMPLETED]: parseFloat(process.env.KNP_REWARD_APPOINTMENT_COMPLETED || '15'),
-  [RewardAction.PRESCRIPTION_FOLLOWED]: parseFloat(process.env.KNP_REWARD_PRESCRIPTION_FOLLOWED || '10'),
-  [RewardAction.FIRST_LOGIN]: 50, // Bonus unique
-  [RewardAction.PROFILE_COMPLETED]: 30, // Bonus unique
-  [RewardAction.REFERRAL_SUCCESS]: 25, // Par parrainage
-  [RewardAction.FEEDBACK_PROVIDED]: 5, // Par feedback
+  [RewardAction.CONSULTATION_COMPLETED]: 150, // Médecin gagne
+  [RewardAction.DOCUMENT_UPLOADED]: 20, // Médecin gagne
+  [RewardAction.DSE_SHARED]: 150, // Patient gagne
+  [RewardAction.APPOINTMENT_COMPLETED]: 100, // Patient gagne (RDV honoré - si consultation créée le jour du RDV ou après)
+  [RewardAction.PRESCRIPTION_FOLLOWED]: 25, // Patient gagne
+  [RewardAction.FIRST_LOGIN]: 0, // Désactivé - pas de bonus à la création
+  [RewardAction.PROFILE_COMPLETED]: 200, // Patient gagne (groupe sanguin + date naissance + localité + taille)
+  [RewardAction.REFERRAL_SUCCESS]: 400, // Parrainage
+  [RewardAction.FEEDBACK_PROVIDED]: 40, // Avis détaillé
 };
 
 /**
@@ -112,6 +116,39 @@ class RewardRulesService {
 
       if (result.success) {
         console.log(`🎁 Récompense attribuée: ${amount} KNP à user ${userId} pour ${action}`);
+
+        // ✅ Envoyer événement HCS pour traçabilité des KenePoints
+        try {
+          if (hederaHcsService.isAvailable()) {
+            // Récupérer le rôle de l'utilisateur
+            const user = await prisma.user.findUnique({
+              where: { id: userId },
+              select: { role: true },
+            });
+
+            const hcsMessage = new HcsMessageBuilder()
+              .setEventType(HcsEventType.POINTS_AWARDED)
+              .setEntity(HcsEntityType.KENE_POINTS, userId)
+              .setUser(userId, user?.role || 'PATIENT')
+              .setDataHash({
+                userId,
+                amount,
+                action,
+                reason,
+                relatedEntityType,
+                relatedEntityId,
+                timestamp: new Date().toISOString(),
+              })
+              .addMetadata('amount', amount)
+              .addMetadata('action', action)
+              .addMetadata('reason', reason)
+              .build();
+
+            await hederaHcsService.submit(hcsMessage, { priority: 6 });
+          }
+        } catch (hcsError) {
+          console.error('Erreur lors de l\'envoi HCS (points awarded):', hcsError);
+        }
       }
 
       return {
@@ -255,10 +292,66 @@ class RewardRulesService {
   }
 
   /**
-   * Bonus pour profil complété
+   * Bonus pour profil patient complété
+   * Vérifie si le patient a renseigné : groupe sanguin + date naissance + localité + taille
    */
   async rewardProfileCompleted(userId: number): Promise<void> {
+    // Vérifier si c'est un patient
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { patient: true },
+    });
+
+    if (!user || user.role !== 'PATIENT' || !user.patient) {
+      return;
+    }
+
+    // Vérifier que le profil est bien complété
+    const { bloodGroup, birthDate, location, height } = user.patient;
+    const isComplete = bloodGroup && birthDate && location && height;
+
+    if (!isComplete) {
+      return;
+    }
+
+    // Attribuer la récompense (une seule fois)
     await this.reward(userId, RewardAction.PROFILE_COMPLETED);
+  }
+
+  /**
+   * Vérifier si RDV honoré et récompenser le patient
+   * Un RDV est honoré si la consultation est créée le jour du RDV ou après
+   */
+  async rewardAppointmentHonored(
+    patientId: number,
+    appointmentId: number,
+    consultationDate: Date
+  ): Promise<void> {
+    // Récupérer le RDV
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!appointment) {
+      return;
+    }
+
+    // Vérifier si la consultation est créée le jour du RDV ou après
+    const appointmentDate = new Date(appointment.date);
+    appointmentDate.setHours(0, 0, 0, 0);
+    
+    const consultDate = new Date(consultationDate);
+    consultDate.setHours(0, 0, 0, 0);
+
+    if (consultDate >= appointmentDate) {
+      // RDV honoré ! Récompenser le patient
+      await this.reward(
+        patientId,
+        RewardAction.APPOINTMENT_COMPLETED,
+        'Appointment',
+        appointmentId
+      );
+    }
   }
 
   /**

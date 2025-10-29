@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import WalletBadge from '@/components/shared/WalletBadge';
 import { 
   Stethoscope, 
   BarChart2, 
@@ -147,6 +148,10 @@ export default function MedecinDashboardContent() {
                   <p className="text-xl text-texte-principal/80 mb-4 font-medium">
                     {doctorProfile?.specialty || 'Médecine Générale'}
                   </p>
+                  
+                  <div className="mb-4">
+                    <WalletBadge />
+                  </div>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {doctorProfile?.structure && (

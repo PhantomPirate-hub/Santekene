@@ -11,6 +11,10 @@ const router = Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+// --- Diagnostic Routes ---
+// Vérifier l'état des services Hedera
+router.get('/status', protect, hederaController.checkHederaStatus);
+
 // --- HCS Routes ---
 // Route pour soumettre un message à HCS
 router.post('/hcs', protect, hederaController.submitHcsMessage);

@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
 import { prisma } from '../services/prisma.service.js';
+import { rewardRulesService } from '../services/reward-rules.service.js';
+import { hederaHcsService } from '../services/hedera-hcs.service.js';
+import { hederaHfsService } from '../services/hedera-hfs.service.js';
+import { HcsMessageBuilder } from '../services/hcs-message-builder.service.js';
+import { HcsEventType, HcsEntityType } from '../types/hedera-hcs.types.js';
+import * as fs from 'fs';
 
 /**
  * Contrôleur pour les fonctionnalités du médecin
@@ -1088,6 +1094,72 @@ export const createConsultation = async (req: Request, res: Response) => {
       },
     });
 
+    // ✅ Attribuer des KenePoints au MÉDECIN pour la consultation
+    try {
+      await rewardRulesService.rewardConsultationCompleted(doctorId, consultation.id);
+    } catch (rewardError) {
+      console.error('Erreur lors de l\'attribution de récompense médecin:', rewardError);
+    }
+
+    // ✅ Vérifier si le patient a un RDV honoré et le récompenser
+    try {
+      // Chercher un RDV CONFIRMED avec ce patient et ce médecin
+      const appointment = await prisma.appointment.findFirst({
+        where: {
+          patientId: parseInt(patientId),
+          doctorId: doctor.id,
+          status: 'CONFIRMED',
+        },
+        orderBy: {
+          date: 'desc',
+        },
+      });
+
+      if (appointment && appointment.date) {
+        // Récupérer l'utilisateur patient
+        const patient = await prisma.patient.findUnique({
+          where: { id: parseInt(patientId) },
+        });
+
+        if (patient) {
+          // Vérifier si RDV honoré et récompenser
+          await rewardRulesService.rewardAppointmentHonored(
+            patient.userId,
+            appointment.id,
+            consultation.date
+          );
+        }
+      }
+    } catch (rewardError) {
+      console.error('Erreur lors de la vérification du RDV honoré:', rewardError);
+    }
+
+    // ✅ Envoyer un message HCS pour traçabilité blockchain
+    try {
+      if (hederaHcsService.isAvailable()) {
+        const hcsMessage = new HcsMessageBuilder()
+          .setEventType(HcsEventType.CONSULTATION_CREATED)
+          .setEntity(HcsEntityType.CONSULTATION, consultation.id)
+          .setUser(doctorId, 'MEDECIN')
+          .setDataHash({
+            consultationId: consultation.id,
+            patientId: consultation.patientId,
+            doctorId: consultation.doctorId,
+            date: consultation.date,
+            diagnosis: consultation.diagnosis,
+          })
+          .addMetadata('patientId', consultation.patientId)
+          .addMetadata('doctorId', consultation.doctorId)
+          .build();
+
+        await hederaHcsService.submit(hcsMessage, { priority: 5 });
+        console.log(`📤 Message HCS envoyé pour consultation ${consultation.id}`);
+      }
+    } catch (hcsError) {
+      console.error('Erreur lors de l\'envoi HCS:', hcsError);
+      // Ne pas bloquer la création de consultation si l'envoi HCS échoue
+    }
+
     return res.status(201).json({
       message: 'Consultation créée avec succès',
       consultation: fullConsultation,
@@ -1152,7 +1224,7 @@ export const uploadConsultationDocument = async (req: Request, res: Response) =>
     const fileBuffer = fs.readFileSync(req.file.path);
     const fileHash = crypto.createHash('sha256').update(fileBuffer).digest('hex');
 
-    // Créer le document
+    // Créer le document dans la DB IMMÉDIATEMENT (sans attendre HFS)
     const document = await prisma.document.create({
       data: {
         patientId: parseInt(patientId),
@@ -1169,6 +1241,74 @@ export const uploadConsultationDocument = async (req: Request, res: Response) =>
         description: title || type,
       },
     });
+
+    // ✅ Upload sur HFS en arrière-plan (NON BLOQUANT)
+    if (hederaHfsService.isAvailable()) {
+      // Lancer l'upload HFS en arrière-plan sans attendre
+      hederaHfsService.createFile(fileBuffer, {
+        fileName: req.file.originalname,
+        fileType: type,
+        patientId: parseInt(patientId),
+        doctorId: doctor.id,
+        uploadedBy: doctorId,
+        uploadedAt: new Date().toISOString(),
+        description: title || type,
+      }).then(async (hfsResult) => {
+        if (hfsResult.success) {
+          // Mettre à jour le document avec les infos HFS
+          await prisma.document.update({
+            where: { id: document.id },
+            data: {
+              hfsFileId: hfsResult.fileId || null,
+              hfsHash: hfsResult.hash || null,
+            },
+          });
+          console.log(`✅ Document ${document.id} uploadé sur HFS: ${hfsResult.fileId}`);
+        } else {
+          console.warn(`⚠️  Échec upload HFS pour document ${document.id}: ${hfsResult.error}`);
+        }
+      }).catch((hfsError) => {
+        console.error(`❌ Erreur upload HFS pour document ${document.id}:`, hfsError);
+      });
+    } else {
+      console.log('⚠️  Service HFS non disponible, document sauvegardé localement uniquement');
+    }
+
+    // ✅ Attribuer des KenePoints au MÉDECIN pour l'upload de document
+    try {
+      await rewardRulesService.rewardDocumentUploaded(doctorId, document.id);
+      console.log(`✅ Récompense de 20 KNP attribuée au médecin ${doctorId} pour document ${document.id}`);
+    } catch (rewardError) {
+      console.error('Erreur lors de l\'attribution de récompense:', rewardError);
+      // Ne pas bloquer l'upload si la récompense échoue
+    }
+
+    // ✅ Envoyer un message HCS pour traçabilité blockchain
+    try {
+      if (hederaHcsService.isAvailable()) {
+        const hcsMessage = new HcsMessageBuilder()
+          .setEventType(HcsEventType.DOCUMENT_UPLOADED)
+          .setEntity(HcsEntityType.DOCUMENT, document.id)
+          .setUser(doctorId, 'MEDECIN')
+          .setDataHash({
+            documentId: document.id,
+            patientId: document.patientId,
+            type: document.type,
+            hash: document.hash,
+            name: document.name,
+          })
+          .addMetadata('patientId', document.patientId)
+          .addMetadata('documentType', document.type)
+          .addMetadata('fileHash', document.hash)
+          .build();
+
+        await hederaHcsService.submit(hcsMessage, { priority: 4 });
+        console.log(`📤 Message HCS envoyé pour document ${document.id}`);
+      }
+    } catch (hcsError) {
+      console.error('Erreur lors de l\'envoi HCS:', hcsError);
+      // Ne pas bloquer l'upload si l'envoi HCS échoue
+    }
 
     return res.status(201).json({
       message: 'Document uploadé avec succès',

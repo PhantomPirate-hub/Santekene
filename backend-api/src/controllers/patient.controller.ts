@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import { PrismaClient, Role } from '@prisma/client';
+import { hederaHcsService } from '../services/hedera-hcs.service.js';
+import { HcsMessageBuilder } from '../services/hcs-message-builder.service.js';
+import { HcsEventType, HcsEntityType } from '../types/hedera-hcs.types.js';
+import { rewardRulesService } from '../services/reward-rules.service.js';
 
 const prisma = new PrismaClient();
 
@@ -876,6 +880,44 @@ export const respondToDseAccessRequest = async (req: Request, res: Response) => 
         },
       },
     });
+
+    // ✅ Envoyer événement HCS pour traçabilité
+    try {
+      if (hederaHcsService.isAvailable()) {
+        const eventType = action === 'approve' 
+          ? HcsEventType.DSE_ACCESS_GRANTED 
+          : HcsEventType.DSE_ACCESS_DENIED;
+
+        const hcsMessage = new HcsMessageBuilder()
+          .setEventType(eventType)
+          .setEntity(HcsEntityType.DSE_ACCESS, updatedRequest.id)
+          .setUser(userId, 'PATIENT')
+          .setDataHash({
+            requestId: updatedRequest.id,
+            patientId: updatedRequest.patientId,
+            doctorId: updatedRequest.doctorId,
+            status: updatedRequest.status,
+            expiresAt: updatedRequest.expiresAt,
+          })
+          .addMetadata('patientId', updatedRequest.patientId)
+          .addMetadata('doctorId', updatedRequest.doctorId)
+          .addMetadata('action', action)
+          .build();
+
+        await hederaHcsService.submit(hcsMessage, { priority: 8 });
+      }
+    } catch (hcsError) {
+      console.error('Erreur lors de l\'envoi HCS:', hcsError);
+    }
+
+    // ✅ Récompenser le patient si accès accordé (partage DSE = 150 KNP)
+    if (action === 'approve') {
+      try {
+        await rewardRulesService.rewardDseShared(userId, updatedRequest.id);
+      } catch (rewardError) {
+        console.error('Erreur lors de la récompense DSE partagé:', rewardError);
+      }
+    }
 
     return res.status(200).json({
       message: action === 'approve' 

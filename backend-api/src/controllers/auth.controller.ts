@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { PrismaClient, Role } from '@prisma/client';
 import { z } from 'zod';
+import { rewardRulesService } from '../services/reward-rules.service.js';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey'; // À remplacer par une variable d'environnement forte
@@ -145,6 +146,15 @@ export const register = async (req: Request, res: Response) => {
         },
       });
 
+      // ✅ Bonus création de compte (900 KNP)
+      try {
+        await rewardRulesService.reward(user.id, 'FIRST_LOGIN' as any, 'USER', user.id);
+        console.log(`✅ Bonus de 900 KNP attribué au nouveau patient ${user.id}`);
+      } catch (rewardError) {
+        console.error('Erreur attribution bonus création:', rewardError);
+        // Ne pas bloquer l'inscription si erreur
+      }
+
       // Créer un token JWT
       const token = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },
@@ -227,6 +237,15 @@ export const register = async (req: Request, res: Response) => {
           phone,
         },
       });
+
+      // ✅ Bonus création de compte (900 KNP) - Médecin
+      try {
+        await rewardRulesService.reward(user.id, 'FIRST_LOGIN' as any, 'USER', user.id);
+        console.log(`✅ Bonus de 900 KNP attribué au nouveau médecin ${user.id}`);
+      } catch (rewardError) {
+        console.error('Erreur attribution bonus création:', rewardError);
+        // Ne pas bloquer l'inscription si erreur
+      }
 
       return res.status(201).json({
         message: `Votre demande d'inscription à ${facility.facilityName} a été soumise avec succès. Vous recevrez un email une fois votre compte validé par l'administrateur.`,
@@ -527,6 +546,15 @@ export const updateProfile = async (req: Request, res: Response) => {
       });
 
       if (patient) {
+        // ✅ Vérifier si le profil ÉTAIT déjà complet AVANT la mise à jour
+        const wasProfileComplete = !!(
+          patient.bloodGroup &&
+          patient.birthDate &&
+          patient.location &&
+          patient.height
+        );
+
+        // Mettre à jour le profil
         await prisma.patient.update({
           where: { id: patient.id },
           data: {
@@ -536,6 +564,28 @@ export const updateProfile = async (req: Request, res: Response) => {
             location: location || null,
           },
         });
+
+        // ✅ Vérifier si le profil est maintenant complet APRÈS la mise à jour
+        const updatedPatient = await prisma.patient.findUnique({
+          where: { id: patient.id },
+        });
+
+        const isProfileComplete = !!(
+          updatedPatient?.bloodGroup &&
+          updatedPatient?.birthDate &&
+          updatedPatient?.location &&
+          updatedPatient?.height
+        );
+
+        // ✅ Récompenser UNIQUEMENT si le profil n'était PAS complet avant ET est complet maintenant
+        if (!wasProfileComplete && isProfileComplete) {
+          try {
+            const { rewardRulesService } = await import('../services/reward-rules.service.js');
+            await rewardRulesService.rewardProfileCompleted(userId);
+          } catch (rewardError) {
+            console.error('Erreur lors de la vérification du profil complété:', rewardError);
+          }
+        }
       }
     }
 

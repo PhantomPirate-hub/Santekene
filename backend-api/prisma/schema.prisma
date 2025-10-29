@@ -253,6 +253,8 @@ model Document {
   description     String?       @db.Text // Description du document
   url             String        @db.Text // Hedera FileId (après traitement worker) ou URL temporaire
   fileUrl         String?       @db.Text // URL MinIO/S3/Local permanente
+  hfsFileId       String?       // Hedera File Service ID (0.0.XXXXX) pour documents sensibles
+  hfsHash         String?       // Hash SHA-256 stocké sur HFS pour vérification d'intégrité
   hash            String        // SHA-256 du fichier pour intégrité
   size            Int           // Taille du fichier en octets
   mimeType        String        // Type MIME du fichier

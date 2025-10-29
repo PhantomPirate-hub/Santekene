@@ -39,7 +39,6 @@ const navLinks = [
   { href: '/dashboard/patient/prescriptions', label: 'Mes Ordonnances', icon: FileText, roles: ['PATIENT'] },
   { href: '/dashboard/patient/appointments', label: 'Mes RDV', icon: Users, roles: ['PATIENT'] },
   { href: '/dashboard/patient/triage', label: 'IA Clinique', icon: BrainCircuit, roles: ['PATIENT'] },
-  { href: '/dashboard/patient/kenepoints', label: 'KènèPoints', icon: Award, roles: ['PATIENT'] },
   { href: '/dashboard/wallet', label: 'Mon Portefeuille', icon: Coins, roles: ['PATIENT'] },
   { href: '/dashboard/map', label: 'Carte', icon: Map, roles: ['PATIENT', 'MEDECIN'] },
   { href: '/dashboard/community', label: 'Communauté', icon: Users, roles: ['PATIENT', 'MEDECIN'] },

@@ -363,7 +363,7 @@ Ce script lance automatiquement les 3 services dans des fenêtres séparées.
 1. **Ouvrir l'application** : http://localhost:3000
 2. **Se connecter en Super Admin** :
    - Email : `superadmin@santekene.com`
-   - Mot de passe : `SuperAdmin2024!`
+   - Mot de passe : `superadmin`
 
 ### Créer une Structure de Santé
 

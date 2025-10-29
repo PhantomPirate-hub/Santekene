@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import WalletConnectButton from '@/components/hedera/WalletConnectButton';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import WalletBadge from '@/components/shared/WalletBadge';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -63,9 +64,14 @@ export default function PatientDashboardContent() {
       className="space-y-8"
     >
       <div className="flex justify-between items-start">
-        <motion.h1 variants={itemVariants} className="text-3xl font-bold text-texte-principal">
-          Bonjour {user?.name || 'Utilisateur'}, prenez soin de votre santé avec Santé Kènè 🌿
-        </motion.h1>
+        <div>
+          <motion.h1 variants={itemVariants} className="text-3xl font-bold text-texte-principal">
+            Bonjour {user?.name || 'Utilisateur'}, prenez soin de votre santé avec Santé Kènè 🌿
+          </motion.h1>
+          <motion.div variants={itemVariants} className="mt-3">
+            <WalletBadge />
+          </motion.div>
+        </div>
         <motion.div variants={itemVariants}>
           <WalletConnectButton />
         </motion.div>
