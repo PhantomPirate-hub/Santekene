@@ -7,7 +7,7 @@ async function main() {
   console.log('🌱 Démarrage du seed...\n');
 
   // Hash du mot de passe par défaut
-  const hashedPassword = await bcrypt.hash('superadmin', 10);
+  const hashedPassword = await bcrypt.hash('SuperAdmin2024!', 10);
 
   // Création du Super Admin UNIQUEMENT
   const superAdminUser = await prisma.user.upsert({

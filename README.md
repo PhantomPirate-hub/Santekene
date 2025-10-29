@@ -1,566 +1,606 @@
-# 🏥 SantèKène - Plateforme de Santé Numérique
+# 🏥 **Santé Kènè - Documentation Complète**
 
-> **Plateforme complète de gestion de santé numérique avec blockchain Hedera, intelligence artificielle et téléconsultation**
+## **📚 Documentation disponible**
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-20+-green)](https://nodejs.org/)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://python.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5+-blue)](https://www.typescriptlang.org/)
-[![Prisma](https://img.shields.io/badge/Prisma-6+-teal)](https://www.prisma.io/)
-[![Hedera](https://img.shields.io/badge/Hedera-Blockchain-purple)](https://hedera.com/)
+### NB: cette section vous aide à comprendre la structure du projet, mais pour l'installation reférer vous à (`INSTALLATION_GUIDE.md`)
 
----
+Ce projet contient **3 guides complets** pour vous accompagner :
 
-## 📋 Table des Matières
+### **1. 📘 Installation Guide** (`INSTALLATION_GUIDE.md`)
+Guide complet d'installation de A à Z :
+- ✅ Prérequis et configuration
+- ✅ Installation Backend API + Backend IA + Frontend
+- ✅ Configuration MySQL + Prisma
+- ✅ Configuration Hedera (HCS, HFS, HTS)
+- ✅ Configuration OpenAI (Backend IA)
+- ✅ Démarrage et vérification
+- ✅ Dépannage
 
-- [Vue d'ensemble](#-vue-densemble)
-- [Fonctionnalités](#-fonctionnalités)
-- [Architecture](#-architecture)
-- [Prérequis](#-prérequis)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Lancement](#-lancement)
-- [Utilisation](#-utilisation)
-- [Technologies](#-technologies)
-- [Documentation](#-documentation)
-- [Licence](#-licence)
+**→ Commencez par ce guide si c'est votre première installation**
 
----
+### **2. 🌐 Hedera Integration Guide** (`HEDERA_INTEGRATION_GUIDE.md`)
+Guide détaillé de l'intégration blockchain Hedera :
+- ✅ HCS (Consensus Service) - Audit trail
+- ✅ HFS (File Service) - Documents immuables
+- ✅ HTS (Token Service) - Token KenePoints
+- ✅ Système KenePoints et badges
+- ✅ Architecture hybride DB + Blockchain
+- ✅ Workflows complets
+- ✅ Vérification sur HashScan
 
-## 🎯 Vue d'ensemble
+**→ Consultez ce guide pour comprendre comment fonctionne Hedera**
 
-**SantèKène** est une plateforme de santé numérique innovante qui combine :
+### **3. 📱 Flutter Integration Guide** (`FLUTTER_INTEGRATION_GUIDE.md`)
+Guide d'intégration mobile Flutter :
+- ✅ Configuration projet Flutter
+- ✅ Authentification JWT
+- ✅ Modèles de données
+- ✅ Services API
+- ✅ Upload de fichiers
+- ✅ IA Clinique (analyse symptômes)
+- ✅ KenePoints et badges
+- ✅ Exemples complets
 
-- **Dossier Médical Électronique (DSE)** sécurisé
-- **Téléconsultation** via visioconférence (Jitsi Meet)
-- **Intelligence Artificielle** pour le triage médical et l'assistance clinique
-- **Blockchain Hedera** pour la traçabilité et la certification des données médicales
-- **Système de récompenses** (KènèPoints) pour encourager l'engagement des utilisateurs
-- **Communauté** et partage d'expériences
+**→ Utilisez ce guide pour développer l'application mobile**
 
-### Cas d'usage principaux
+### **4. 🤖 Backend IA** (dans ce README)
+L'intégration IA est documentée directement dans ce README :
+- ✅ Triage IA des symptômes (OpenAI GPT)
+- ✅ Transcription audio (Whisper)
+- ✅ Recommandations médecins et centres de santé
+- ✅ Installation et configuration Backend IA
+- ✅ API Endpoints et exemples d'utilisation
 
-✅ **Patients** : Consultations en ligne, gestion du DSE, suivi des ordonnances  
-✅ **Médecins** : Téléconsultations, prescriptions NFT, historique médical certifié  
-✅ **Admins** : Gestion des structures de santé, validation des médecins  
-✅ **Super Admins** : Monitoring global, gestion des utilisateurs
-
----
-
-## ⭐ Fonctionnalités
-
-### Pour les Patients 🧑‍⚕️
-
-- 📋 **DSE (Dossier de Santé Électronique)** : Consultations, analyses, allergies, prescriptions
-- 📹 **Téléconsultation** : Visioconférence sécurisée avec les médecins
-- 💊 **Ordonnances NFT** : Prescriptions certifiées sur blockchain Hedera
-- 🤖 **Assistant IA** : Aide au diagnostic basée sur l'historique médical
-- 🎁 **KènèPoints** : Récompenses pour l'utilisation de la plateforme
-- 👥 **Communauté** : Partage d'expériences et entraide
-
-### Pour les Médecins 🩺
-
-- 📅 **Gestion des RDV** : Acceptation/refus, planning, notifications
-- 📝 **Consultations** : Création de consultations avec IA de résumé
-- 💉 **Prescriptions** : Génération d'ordonnances certifiées (NFT)
-- 📊 **Statistiques** : Analyses de consultations, patients, revenus
-- 📖 **Historique** : Accès complet aux consultations passées
-- 🔔 **Notifications** : Alertes en temps réel
-
-### Pour les Admins 🏥
-
-- 🏢 **Gestion de la structure** : Validation des médecins, statistiques
-- 👨‍⚕️ **Médecins** : Approbation/refus des demandes d'inscription
-- 📈 **Tableau de bord** : Vue d'ensemble des activités
-
-### Pour les Super Admins 👑
-
-- 🏥 **Structures de santé** : Approbation des demandes (hôpitaux, cliniques)
-- 👥 **Utilisateurs** : Activation/désactivation des comptes
-- 📊 **Monitoring** : Suivi global des activités de la plateforme
-- 🔧 **Administration** : Création de Super Admins
-
-### Blockchain Hedera 🔗
-
-- **HCS (Consensus Service)** : Journalisation immuable des actions critiques
-- **HFS (File Service)** : Stockage vérifiable des certificats médicaux
-- **HTS (Token Service)** : Gestion des KènèPoints et NFT de prescriptions
+**→ Consultez la section "Intelligence Artificielle" ci-dessous**
 
 ---
 
-## 🏗️ Architecture
+## **🎯 Démarrage rapide**
+
+### **Backend API (Node.js)**
+```bash
+cd backend-api
+npm install
+npx prisma migrate dev
+npx prisma generate
+npx prisma db seed
+npm run dev
+```
+
+### **Backend IA (Python)** - *Optionnel*
+```bash
+cd backend-ia
+python -m pip install -r requirements.txt
+# Configurer OPENAI_API_KEY dans .env
+python -m uvicorn main:app --reload --port 8000
+```
+
+### **Frontend (Next.js)**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### **Accès**
+- Frontend : `http://localhost:3000`
+- Backend API : `http://localhost:3001`
+- Backend IA : `http://localhost:8000` *(optionnel)*
+- SuperAdmin : `superadmin@santekene.com` / `SuperAdmin2024!`
+
+---
+
+## **🏗️ Architecture**
+
+### **Stack Technique**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    FRONTEND (Next.js 14)                 │
+│  React + TypeScript + Tailwind + Shadcn UI              │
+└─────────────────────────────────────────────────────────┘
+           ↓ HTTP/REST (3001)      ↓ HTTP/REST (8000)
+┌──────────────────────────┐    ┌──────────────────────────┐
+│   BACKEND API (Express)  │    │   BACKEND IA (FastAPI)   │
+│  TypeScript + Prisma ORM │    │   Python + OpenAI        │
+│  JWT Auth + Multer       │←───│   NLP + Speech-to-Text   │
+└──────────────────────────┘    └──────────────────────────┘
+           ↓
+┌─────────────────────────────────────────────────────────┐
+│                  DATABASE (MySQL 8.0)                    │
+│  Users, Patients, Doctors, Consultations, Documents     │
+│  Prescriptions, Appointments, Community, Wallets        │
+└─────────────────────────────────────────────────────────┘
+           ↓
+┌─────────────────────────────────────────────────────────┐
+│              HEDERA SERVICES (Testnet)                   │
+│  HCS (Audit Trail) + HFS (Documents) + HTS (Tokens)     │
+└─────────────────────────────────────────────────────────┘
+```
+
+### **Services Hedera**
+
+| Service | Fonction | Utilisé pour |
+|---------|----------|--------------|
+| **HCS** | Consensus Service | Audit trail immuable de toutes les actions |
+| **HFS** | File Service | Documents médicaux immuables |
+| **HTS** | Token Service | Token KenePoints (10M supply) |
+
+---
+
+## **🤖 Intelligence Artificielle**
+
+L'application intègre un **backend IA séparé** (Python/FastAPI) pour l'analyse des symptômes et les recommandations médicales.
+
+### **Fonctionnalités IA**
+
+#### **1. Triage IA des symptômes** 🩺
+- **Saisie texte** : Description manuelle des symptômes
+- **Saisie vocale** : Transcription automatique (speech-to-text)
+- **Analyse IA** : Évaluation de la gravité et recommandations
+- **Résultats** :
+  - Niveau de gravité (faible, moyen, élevé, urgent)
+  - Diagnostic probable
+  - Recommandations d'action
+  - Spécialités médicales suggérées
+
+#### **2. Recommandations intelligentes** 💡
+- **Médecins recommandés** : Basés sur les symptômes et spécialités
+- **Centres de santé à proximité** : Géolocalisation + calcul de distance (formule Haversine)
+- **Tri par pertinence** : Distance, disponibilité, spécialité
+
+### **Architecture IA**
+
+```
+Frontend (Next.js)
+    ↓
+Backend IA (FastAPI - Port 8000)
+    ↓
+┌─────────────────────────────────┐
+│  • Analyse symptômes (NLP)      │
+│  • Transcription audio           │
+│  • Recommandations médicales     │
+│  • Géolocalisation              │
+└─────────────────────────────────┘
+    ↓
+Backend API (Express - Port 3001)
+    ↓
+Base de données MySQL
+```
+
+### **Installation Backend IA**
+
+Le backend IA est un service Python/FastAPI séparé :
+
+```bash
+# Prérequis
+python -m pip install fastapi uvicorn openai python-multipart
+
+# Configuration
+cd backend-ia
+cp .env.example .env
+# Éditer .env et ajouter OPENAI_API_KEY
+
+# Démarrage
+python -m uvicorn main:app --reload --port 8000
+```
+
+**Variables d'environnement (.env)** :
+```env
+OPENAI_API_KEY=sk-...
+AI_MODEL=gpt-3.5-turbo
+BACKEND_URL=http://localhost:3001
+```
+
+### **API Endpoints IA**
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/api/ai/triage` | POST | Analyse des symptômes |
+| `/api/ai/transcribe` | POST | Transcription audio → texte |
+| `/api/ai/recommend-doctors` | GET | Recommandations médecins |
+| `/api/ai/recommend-health-centers` | GET | Centres de santé proches |
+
+### **Utilisation**
+
+#### **1. Saisie texte**
+```typescript
+// Frontend appelle directement le backend IA
+const response = await fetch('http://localhost:8000/api/ai/triage', {
+  method: 'POST',
+  body: new URLSearchParams({ symptoms: 'fièvre et maux de tête' }),
+});
+```
+
+#### **2. Saisie vocale**
+```typescript
+// 1. Enregistrement audio via navigator.mediaDevices
+// 2. Envoi au backend IA pour transcription
+const formData = new FormData();
+formData.append('audio_file', audioBlob, 'recording.webm');
+
+const response = await fetch('http://localhost:8000/api/ai/transcribe', {
+  method: 'POST',
+  body: formData,
+});
+
+// 3. Transcription automatique puis analyse
+```
+
+### **Exemple de réponse IA**
+
+```json
+{
+  "severity": "moderate",
+  "diagnosis": "Probable infection respiratoire",
+  "recommendations": [
+    "Consulter un médecin généraliste",
+    "Se reposer et s'hydrater",
+    "Surveiller la température"
+  ],
+  "specialties": ["Médecine générale", "Pneumologie"],
+  "urgency_level": 2,
+  "recommended_doctors": [
+    {
+      "name": "Dr. Diallo",
+      "specialty": "Médecine générale",
+      "location": "Conakry",
+      "distance": 2.3
+    }
+  ],
+  "health_centers": [
+    {
+      "name": "Hôpital Ignace Deen",
+      "address": "Kaloum, Conakry",
+      "distance": 1.5
+    }
+  ]
+}
+```
+
+### **Technologies IA utilisées**
+
+- **FastAPI** : Framework web Python haute performance
+- **OpenAI API** : GPT-3.5/GPT-4 pour analyse NLP
+- **Speech-to-Text** : Whisper (OpenAI) pour transcription audio
+- **Géolocalisation** : Formule de Haversine pour calcul de distance
+- **NLP** : Traitement du langage naturel pour extraction de symptômes
+
+### **Sécurité IA**
+
+- ✅ Aucune donnée médicale sensible envoyée à OpenAI
+- ✅ Analyse uniquement des symptômes (anonymisés)
+- ✅ Pas de stockage des conversations
+- ✅ Recommandations à titre informatif (non-diagnostic médical)
+- ⚠️ **Disclaimer** : L'IA ne remplace pas un avis médical professionnel
+
+---
+
+## **📊 Fonctionnalités principales**
+
+### **Pour les Patients** 🏥
+- ✅ Dossier de Santé Électronique (DSE)
+- ✅ **IA Clinique** - Analyse des symptômes avec recommandations
+- ✅ **Saisie vocale** - Transcription audio des symptômes
+- ✅ Consultations médicales
+- ✅ Documents médicaux (analyses, radios)
+- ✅ Ordonnances
+- ✅ Rendez-vous
+- ✅ Partage DSE avec médecins
+- ✅ Recommandations médecins par spécialité
+- ✅ Centres de santé à proximité (géolocalisation)
+- ✅ Communauté santé
+- ✅ KenePoints et badges
+
+### **Pour les Médecins** 🩺
+- ✅ Assistant IA
+- ✅ Gestion des patients
+- ✅ Accès DSE (avec autorisation)
+- ✅ Création consultations
+- ✅ Upload documents médicaux
+- ✅ Prescriptions électroniques
+- ✅ Rendez-vous
+- ✅ KenePoints pour actions
+
+### **Pour les Admins** 👔
+- ✅ Validation des medecins dans sa structure
+- ✅ Gestion médecins/patients
+- ✅ Statistiques globales
+- ✅ Modération communauté
+
+### **Pour le SuperAdmin** 👑
+- ✅ Validation des structures de santé
+- ✅ Monitoring et suivi des flux dans l'application
+- ✅ Gestion catégories communauté
+- ✅ Création categorie communauté
+- ✅ Accès complet système
+
+---
+
+## **💰 Système KenePoints**
+
+### **Comment gagner des KenePoints**
+
+#### **MÉDECINS** 🩺
+- Consultation complétée : **+150 KNP**
+- Document uploadé : **+20 KNP**
+
+#### **PATIENTS** 🏥
+- Partage DSE : **+150 KNP**
+- RDV Honoré : **+100 KNP**
+- Profil complété : **+200 KNP**
+
+### **Badges**
+
+| Badge | Solde KNP | Avantages |
+|-------|-----------|-----------|
+| 🥉 **BRONZE** | 0-499 | Accès de base |
+| 🥈 **ARGENT** | 500-1999 | Support prioritaire |
+| 🥇 **OR** | 2000-4999 | Fonctionnalités avancées |
+| 💎 **PLATINE** | 5000-9999 | Événements exclusifs |
+| 👑 **VIP** | 10000+ | Accès premium |
+
+### **Modèle "Gain uniquement"**
+- ✅ Les utilisateurs **gagnent** des KenePoints
+- ❌ Les KenePoints **ne se dépensent pas**
+- 💡 Système de fidélisation et gamification
+
+---
+
+## **🔐 Sécurité**
+
+### **Authentification**
+- ✅ JWT (JSON Web Tokens)
+- ✅ Tokens expiration : 7 jours
+- ✅ Mots de passe hashés (bcrypt)
+- ✅ RBAC (Role-Based Access Control)
+
+### **Protection des données**
+- ✅ CORS configuré
+- ✅ Helmet.js (sécurité HTTP)
+- ✅ Rate limiting
+- ✅ Validation des inputs (Zod)
+- ✅ Upload sécurisé (Multer)
+
+### **Hedera Hashgraph**
+- ✅ Hash SHA-256 des données (pas de données sensibles sur chaîne)
+- ✅ Signature HMAC des messages
+- ✅ Vérification d'intégrité des fichiers
+- ✅ Audit trail immuable
+
+---
+
+## **📁 Structure du projet**
 
 ```
 Santekene/
-├── frontend/              # Next.js 14 (React, TypeScript, Tailwind CSS)
-│   ├── src/
-│   │   ├── app/          # Pages et routes (App Router)
-│   │   ├── components/   # Composants réutilisables
-│   │   ├── contexts/     # Contextes React (Auth, etc.)
-│   │   └── lib/          # Utilitaires
-│   └── public/           # Assets statiques
-│
-├── backend-api/           # API REST (Node.js, Express, Prisma)
-│   ├── src/
-│   │   ├── controllers/  # Logique métier
-│   │   ├── routes/       # Routes API
-│   │   ├── services/     # Services (Hedera, Storage, etc.)
-│   │   ├── workers/      # Workers asynchrones (BullMQ)
-│   │   ├── middleware/   # Auth, RBAC, Rate Limiting
-│   │   └── types/        # Types TypeScript
+├── backend-api/
 │   ├── prisma/
-│   │   ├── schema.prisma # Schéma de la base de données
-│   │   ├── migrations/   # Migrations SQL
-│   │   └── seed.ts       # Données initiales (SuperAdmin)
-│   └── uploads/          # Fichiers uploadés (local)
-│
-├── backend-ai/            # IA Clinique (Python, FastAPI, LangChain)
-│   ├── main.py           # API FastAPI
-│   ├── agents/           # Agents IA
-│   └── requirements.txt  # Dépendances Python
-│
-├── README.md              # Ce fichier
-├── HEDERA_INTEGRATION.md  # Guide Hedera (HCS/HFS/HTS)
-└── MOBILE_INTEGRATION.md  # Guide intégration mobile
+│   │   ├── schema.prisma          # Schéma DB
+│   │   ├── migrations/            # Historique migrations
+│   │   └── seed.ts                # Seed SuperAdmin
+│   ├── src/
+│   │   ├── controllers/           # 18 contrôleurs
+│   │   ├── routes/                # 18 routes
+│   │   ├── middleware/            # Auth, RBAC, Upload, Rate limit
+│   │   ├── services/              # 12 services (dont Hedera)
+│   │   ├── types/                 # Types TypeScript
+│   │   ├── workers/               # Workers Hedera
+│   │   ├── scripts/               # Scripts Hedera
+│   │   └── server.ts              # Serveur Express
+│   ├── uploads/                   # Fichiers uploadés
+│   ├── .env                       # Variables environnement
+│   └── package.json
+├── backend-ia/
+│   ├── main.py                    # Serveur FastAPI
+│   ├── requirements.txt           # Dépendances Python
+│   └── .env                       # OPENAI_API_KEY
+├── frontend/
+│   ├── src/
+│   │   ├── app/                   # Pages Next.js
+│   │   │   ├── dashboard/         # Pages dashboard
+│   │   │   │   └── patient/
+│   │   │   │       └── triage/    # Page IA Triage
+│   │   │   ├── login/            
+│   │   │   └── register/
+│   │   ├── components/            # 50+ composants React
+│   │   │   ├── patient/           # AITriageForm, AITriageResults
+│   │   │   └── ai/                # AISuggestionsDisplay
+│   │   ├── context/               # AuthContext
+│   │   ├── hooks/                 # Custom hooks
+│   │   └── lib/                   # Utilitaires
+│   ├── public/                    # Assets
+│   ├── .env.local                 # NEXT_PUBLIC_AI_API_URL
+│   └── package.json
+├── INSTALLATION_GUIDE.md          # Guide installation
+├── HEDERA_INTEGRATION_GUIDE.md    # Guide Hedera
+├── FLUTTER_INTEGRATION_GUIDE.md   # Guide Flutter
+└── README.md                      # Ce fichier
 ```
 
 ---
 
-## 🛠️ Prérequis
+## **🛠️ Scripts utiles**
 
-Avant de commencer, assurez-vous d'avoir installé :
-
-### Obligatoires
-
-| Logiciel | Version minimale | Lien de téléchargement |
-|----------|------------------|------------------------|
-| **Node.js** | 20.x ou supérieur | https://nodejs.org/ |
-| **npm** | 10.x ou supérieur | Inclus avec Node.js |
-| **MySQL** | 8.0 ou supérieur | https://dev.mysql.com/downloads/ |
-| **Python** | 3.11 ou supérieur | https://www.python.org/downloads/ |
-| **Git** | 2.x ou supérieur | https://git-scm.com/downloads |
-
-### Optionnels (pour Hedera)
-
-| Logiciel | Version | Lien | Usage |
-|----------|---------|------|-------|
-| **Docker Desktop** | Dernière | https://www.docker.com/products/docker-desktop | Redis & MinIO |
-| **Redis** | 7.x | Via Docker ou https://redis.io/download | Cache Hedera |
-
----
-
-## 📦 Installation
-
-### 1️⃣ Cloner le Projet
+### **Backend API (Node.js)**
 
 ```bash
-git clone https://github.com/votre-username/Santekene.git
-cd Santekene
+# Développement
+npm run dev                        # Démarrer backend (dev)
+npm run build                      # Compiler TypeScript
+npm start                          # Démarrer backend (prod)
+
+# Base de données
+npx prisma migrate dev             # Créer/appliquer migrations
+npx prisma generate                # Générer client Prisma
+npx prisma db seed                 # Seed SuperAdmin
+
+# Hedera
+node src/scripts/create-hcs-topic.ts        # Créer Topic HCS
+node src/scripts/create-kenepoint-token.ts  # Créer Token KNP
+node show-hedera-links.cjs                  # Afficher liens HashScan
 ```
 
-### 2️⃣ Installation du Backend API (Node.js)
+### **Backend IA (Python)**
 
 ```bash
-cd backend-api
-npm install
+# Installation
+python -m pip install -r requirements.txt
+
+# Développement
+python -m uvicorn main:app --reload --port 8000
+
+# Production
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-**Créer le fichier `.env`** :
+### **Frontend (Next.js)**
 
 ```bash
-cp .env.example .env
-```
-
-**Éditer `.env`** avec vos configurations :
-
-```env
-# Base de données MySQL
-DATABASE_URL="mysql://root:@localhost:3306/santekene"
-
-# JWT
-JWT_SECRET="votre_secret_jwt_tres_securise_changez_moi"
-
-# URLs
-BACKEND_URL="http://localhost:3001"
-FRONTEND_URL="http://localhost:3000"
-
-# OpenAI (pour l'IA)
-OPENAI_API_KEY="sk-votre-cle-openai"
-
-# Jitsi Meet (Visioconférence)
-JITSI_DOMAIN="meet.jit.si"
-JITSI_APP_ID=""
-
-# Hedera (Optionnel - voir HEDERA_INTEGRATION.md)
-HEDERA_NETWORK="testnet"
-HEDERA_OPERATOR_ID=""
-HEDERA_OPERATOR_KEY=""
-HEDERA_HCS_TOPIC_ID=""
-HEDERA_KNP_TOKEN_ID=""
-
-# Redis (pour Hedera)
-REDIS_HOST="localhost"
-REDIS_PORT="6379"
-REDIS_PASSWORD=""
-
-# MinIO (Stockage fichiers - Optionnel)
-USE_MINIO="false"
-MINIO_ENDPOINT="localhost"
-MINIO_PORT="9000"
-MINIO_ACCESS_KEY=""
-MINIO_SECRET_KEY=""
-MINIO_BUCKET_NAME="santekene-files"
-```
-
-**Initialiser la base de données** :
-
-```bash
-# Créer la base de données MySQL
-la base de donnée doit etre : santekene
-
-# Appliquer les migrations Prisma
-npx prisma migrate dev
-
-# Charger les données initiales (SuperAdmin)
-npx prisma db seed
-```
-
-✅ **SuperAdmin créé** :
-- **Email** : `superadmin@santekene.com`
-- **Mot de passe** : `superadmin`
-
-### 3️⃣ Installation du Backend AI (Python)
-
-```bash
-cd backend-ai
-
-# Créer un environnement virtuel
-python -m venv venv
-
-# Activer l'environnement virtuel
-# Windows PowerShell :
-.\venv\Scripts\Activate.ps1
-# Windows CMD :
-.\venv\Scripts\activate.bat
-# macOS/Linux :
-source venv/bin/activate
-
-# Installer les dépendances
-pip install -r requirements.txt
-```
-
-**Créer le fichier `.env`** :
-
-```bash
-cp .env.example .env
-```
-
-**Éditer `.env`** :
-
-```env
-OPENAI_API_KEY="sk-votre-cle-openai"
-BACKEND_URL="http://localhost:3001"
-```
-
-### 4️⃣ Installation du Frontend (Next.js)
-
-```bash
-cd frontend
-npm install
-```
-
-**Créer le fichier `.env.local`** :
-
-```bash
-cp .env.example .env.local
-```
-
-**Éditer `.env.local`** :
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
-NEXT_PUBLIC_AI_API_URL=http://localhost:8000
-NEXT_PUBLIC_JITSI_DOMAIN=meet.jit.si
+# Développement
+npm run dev                        # Démarrer frontend (dev)
+npm run build                      # Build production
+npm start                          # Démarrer frontend (prod)
 ```
 
 ---
 
-## ⚙️ Configuration
+### **Services Hedera**
 
-### Configuration MySQL
-
-1. **Ouvrir MySQL Workbench** ou votre outil préféré
-2. **Créer la base de données** :
-   ```sql
-   CREATE DATABASE santekene CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
-3. **Vérifier la connexion** dans `.env` du `backend-api`
-
-### Configuration OpenAI (pour l'IA)
-
-1. **Créer un compte** : https://platform.openai.com/
-2. **Générer une clé API** : https://platform.openai.com/api-keys
-3. **Ajouter la clé** dans :
-   - `backend-api/.env` → `OPENAI_API_KEY`
-   - `backend-ai/.env` → `OPENAI_API_KEY`
-
-### Configuration Jitsi Meet (Visioconférence)
-
-**Par défaut, utilise le serveur public** : `meet.jit.si`
-
-**Pour un serveur privé** :
-1. Installer Jitsi : https://jitsi.github.io/handbook/docs/devops-guide/devops-guide-quickstart
-2. Modifier dans `.env.local` (frontend) :
-   ```env
-   NEXT_PUBLIC_JITSI_DOMAIN=votre-domaine.com
-   ```
+### **Ressources externes**
+- **Hedera Docs** : https://docs.hedera.com
+- **Hedera Portal** : https://portal.hedera.com
+- **HashScan Testnet** : https://hashscan.io/testnet
+- **Prisma Docs** : https://www.prisma.io/docs
+- **Next.js Docs** : https://nextjs.org/docs
 
 ---
 
-## 🚀 Lancement
+## **✅ Vérifications post-installation**
 
-### Méthode 1 : Lancement Manuel (3 Terminaux)
-
-**Terminal 1 - Backend API** :
-```bash
-cd backend-api
-npm run dev
+### **1. Backend API fonctionne**
 ```
-✅ API disponible sur http://localhost:3001
-
-**Terminal 2 - Backend AI** :
-```bash
-cd backend-ai
-# Activer venv si pas déjà fait
-.\venv\Scripts\Activate.ps1  # Windows
-# ou
-source venv/bin/activate      # macOS/Linux
-
-python main.py
-```
-✅ API IA disponible sur http://localhost:8000
-
-**Terminal 3 - Frontend** :
-```bash
-cd frontend
-npm run dev
-```
-✅ Application disponible sur http://localhost:3000
-
-### Méthode 2 : Script PowerShell (Windows)
-
-```powershell
-.\start-all.ps1
-```
-Ce script lance automatiquement les 3 services dans des fenêtres séparées.
-
----
-
-## 🎮 Utilisation
-
-### Premier Lancement
-
-1. **Ouvrir l'application** : http://localhost:3000
-2. **Se connecter en Super Admin** :
-   - Email : `superadmin@santekene.com`
-   - Mot de passe : `superadmin`
-
-### Créer une Structure de Santé
-
-1. **Aller sur `/register`**
-2. **Sélectionner le rôle "Admin"**
-3. **Remplir le formulaire** :
-   - Nom de la structure
-   - Localité
-   - Contact
-   - Document de validation (licence)
-   - Informations du représentant
-4. **Soumettre** → Demande envoyée au Super Admin
-5. **Super Admin approuve** → Structure activée
-
-### Ajouter un Médecin
-
-1. **Admin se connecte**
-2. **Menu "Médecins" → "Ajouter un médecin"**
-3. **Le médecin s'inscrit** via `/register` (rôle "Médecin")
-4. **Admin approuve** la demande
-
-### Inscription Patient
-
-1. **Aller sur `/register`**
-2. **Sélectionner "Patient"**
-3. **Remplir** : Nom, Email, Téléphone, Mot de passe
-4. **Accès immédiat** (pas de validation requise)
-
----
-
-## 🔧 Technologies
-
-### Frontend
-
-| Technologie | Usage |
-|-------------|-------|
-| **Next.js 14** | Framework React (App Router) |
-| **TypeScript** | Typage statique |
-| **Tailwind CSS** | Styling |
-| **Shadcn/ui** | Composants UI |
-| **Framer Motion** | Animations |
-| **React-Leaflet** | Cartes interactives |
-| **Jitsi Meet** | Visioconférence |
-| **Axios** | Requêtes HTTP |
-
-### Backend API
-
-| Technologie | Usage |
-|-------------|-------|
-| **Node.js + Express** | Serveur API REST |
-| **TypeScript** | Typage statique |
-| **Prisma** | ORM (MySQL) |
-| **JWT** | Authentification |
-| **BullMQ** | Files d'attente (jobs asynchrones) |
-| **IORedis** | Cache Redis |
-| **Hedera SDK** | Blockchain (HCS/HFS/HTS) |
-| **MinIO** | Stockage fichiers (optionnel) |
-| **Multer** | Upload de fichiers |
-
-### Backend AI
-
-| Technologie | Usage |
-|-------------|-------|
-| **Python 3.11** | Langage |
-| **FastAPI** | API REST |
-| **LangChain** | Framework IA |
-| **OpenAI GPT-4o-mini** | Modèle de langage |
-| **Whisper** | Transcription audio (future) |
-
-### Base de Données
-
-| Technologie | Usage |
-|-------------|-------|
-| **MySQL 8.0** | Base de données relationnelle |
-| **Prisma** | ORM et migrations |
-
-### Blockchain
-
-| Technologie | Usage |
-|-------------|-------|
-| **Hedera Hashgraph** | Blockchain |
-| **HCS** | Consensus Service (logs immuables) |
-| **HFS** | File Service (certificats) |
-| **HTS** | Token Service (KènèPoints, NFT prescriptions) |
-
----
-
-## 📚 Documentation
-
-- **Guide Hedera** : [HEDERA_INTEGRATION.md](./HEDERA_INTEGRATION.md)
-  - Installation Redis/Docker
-  - Création compte Hedera Testnet
-  - Configuration HCS/HFS/HTS
-  - Tests et vérification
-
-- **Guide Mobile** : [MOBILE_INTEGRATION.md](./MOBILE_INTEGRATION.md)
-  - URLs API pour intégration mobile
-  - Exemples Flutter et React Native
-  - Visioconférence mobile (Jitsi Meet SDK)
-
-- **API Documentation** : http://localhost:3001/api-docs (Swagger - à venir)
-
----
-
-## 🐛 Dépannage
-
-### Erreur de connexion MySQL
-
-```
-Error: Can't reach database server at `localhost`:`3306`
+http://localhost:3001
+# Attendu: 🌿 Santé Kènè API est en ligne !
 ```
 
-**Solution** :
-1. Vérifier que MySQL est démarré
-2. Vérifier les identifiants dans `backend-api/.env`
-3. Créer la base de données : `CREATE DATABASE santekene;`
-
-### Port déjà utilisé
-
+### **2. Backend IA fonctionne** *(optionnel)*
 ```
-Error: listen EADDRINUSE: address already in use :::5000
+http://localhost:8000/docs
+# Attendu: Page Swagger/OpenAPI de l'API IA
 ```
 
-**Solution** :
-- Tuer le processus sur le port : 
-  ```bash
-  # Windows
-  netstat -ano | findstr :5000
-  taskkill /PID <PID> /F
-  
-  # macOS/Linux
-  lsof -ti:5000 | xargs kill -9
-  ```
-- Ou changer le port dans `.env`
-
-### Erreur Prisma
-
+### **3. Frontend accessible**
 ```
-Error: Prisma schema not found
+http://localhost:3000
+# Attendu: Page d'accueil Santé Kènè
 ```
 
-**Solution** :
-```bash
-cd backend-api
-npx prisma generate
-npx prisma migrate dev
-```
+### **4. Connexion SuperAdmin**
+- Email : `superadmin@santekene.com`
+- Mot de passe : `SuperAdmin2024!`
+- Devrait rediriger vers `/dashboard/superadmin`
 
-### Python venv non activé
+### **5. Triage IA** *(si backend IA installé)*
+- Se connecter en tant que patient
+- Aller sur **IA Clinique** (menu)
+- Tester la saisie de symptômes
+- Attendu : Analyse + recommandations
 
-```
-ModuleNotFoundError: No module named 'fastapi'
-```
-
-**Solution** :
-```bash
-cd backend-ai
-# Windows
-.\venv\Scripts\Activate.ps1
-# macOS/Linux
-source venv/bin/activate
-
-pip install -r requirements.txt
+### **6. Base de données**
+```sql
+USE santekene;
+SELECT COUNT(*) FROM User WHERE role = 'SUPERADMIN';
+-- Attendu: 1
 ```
 
 ---
 
-## 🤝 Contribution
+## **❌ Dépannage rapide**
 
-Les contributions sont les bienvenues ! 
-
-1. **Fork** le projet
-2. **Créer une branche** : `git checkout -b feature/ma-fonctionnalite`
-3. **Commiter** : `git commit -m 'Ajout de ma fonctionnalité'`
-4. **Push** : `git push origin feature/ma-fonctionnalite`
-5. **Ouvrir une Pull Request**
-
----
-
-## 📄 Licence
-
-Ce projet est sous licence **MIT**.
-
----
-
-## 👥 Équipe
-
-Développé avec ❤️ par l'équipe SantèKène.
+| Problème | Solution |
+|----------|----------|
+| Port 3001 utilisé | Changer `PORT` dans `.env` (backend-api) |
+| Port 8000 utilisé | Changer `--port 8001` lors du démarrage (backend-ia) |
+| Erreur MySQL | Vérifier `DATABASE_URL` dans `.env` (backend-api) |
+| Services Hedera indisponibles | Vérifier `HEDERA_*` dans `.env` (sans guillemets) |
+| Erreur Prisma EPERM | Arrêter backend → `npx prisma generate` → Redémarrer |
+| Migration échoue | Supprimer dossiers vides dans `prisma/migrations/` |
+| Backend IA ne démarre pas | Vérifier `OPENAI_API_KEY` dans `.env` (backend-ia) |
+| Erreur triage IA | Vérifier que backend IA est démarré sur port 8000 |
+| Transcription audio échoue | Vérifier clé OpenAI et quota API |
+| Pas de recommandations | Vérifier `BACKEND_URL` dans `.env` (backend-ia) |
 
 ---
 
-## 📞 Support
+## **📈 Prochaines étapes**
 
-- **Documentation** : Voir les fichiers `.md` dans le projet
-- **Issues** : https://github.com/votre-username/Santekene/issues
-- **Email** : support@santekene.com
+1. ✅ **Installation complète** → `INSTALLATION_GUIDE.md`
+2. ✅ **Comprendre Hedera** → `HEDERA_INTEGRATION_GUIDE.md`
+3. ✅ **Développer mobile** → `FLUTTER_INTEGRATION_GUIDE.md`
+4. 🚀 **Déploiement production** (bientôt)
+5. 📱 **Application mobile** (en cours avec Flutter)
 
 ---
 
-**🎉 Bon développement avec SantèKène !**
+## **💡 Notes importantes**
+
+### **Services Hedera (Testnet)**
+- Les services Hedera sont sur **Testnet** (gratuit)
+- Les HBAR testnet sont obtenus gratuitement sur le faucet
+- Pour passer en **Mainnet** : Changer les IDs et clés dans `.env`
+
+### **KenePoints**
+- Les transactions KNP sont dans la **base de données** (rapide, gratuit)
+- Les événements sont enregistrés sur **Hedera HCS** (audit trail)
+- Les tokens **HTS** restent dans le Treasury (pas de transferts réels pour l'instant)
+
+### **Documents**
+- Documents stockés **localement** ET sur **Hedera HFS** (double stockage)
+- Upload HFS **non-bloquant** (arrière-plan)
+- Vérification d'intégrité possible via hash SHA-256
+
+---
+
+## **👥 Rôles utilisateurs**
+
+| Rôle | Accès | Fonctionnalités |
+|------|-------|-----------------|
+| **PATIENT** | DSE, Consultations, Documents, Rendez-vous, Communauté | Gestion santé personnelle |
+| **MEDECIN** | Patients, Consultations, Documents (upload), Ordonnances | Pratique médicale |
+| **ADMIN** | Structures, Utilisateurs, Statistiques | Administration |
+| **SUPERADMIN** | Tout + Catégories + Posts communauté | Administration complète |
+
+---
+
+## **🎉 Félicitations !**
+
+Vous avez maintenant accès à une **application de santé complète** avec :
+- ✅ Frontend moderne (Next.js 14)
+- ✅ Backend robuste (Node.js + Express)
+- ✅ Backend IA (Python + FastAPI + OpenAI)
+- ✅ Base de données relationnelle (MySQL + Prisma)
+- ✅ Blockchain Hedera (HCS + HFS + HTS)
+- ✅ Intelligence Artificielle (NLP + Speech-to-Text)
+- ✅ Système de gamification (KenePoints + Badges)
+- ✅ Intégration mobile prête (Flutter)
+
+---
+
+## **📞 Support**
+
+- **Documentation** : Consultez les 3 guides MD
+- **Logs backend** : `npm run dev` (terminal backend)
+- **Logs frontend** : Console navigateur (F12)
+- **HashScan** : `node show-hedera-links.js`
+
+---
+
+**Version** : 1.0.0  
+**Date** : Octobre 2025  
+**Hedera Services** : HCS + HFS + HTS  
+**IA Backend** : Python/FastAPI + OpenAI (GPT + Whisper)  
+**Licence** : MIT (à définir)
+
+🚀 **Bonne utilisation de Santé Kènè !**
+
