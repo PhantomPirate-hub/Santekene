@@ -193,7 +193,7 @@ Ajoutez ce Topic ID dans votre `.env` :
 HEDERA_TOPIC_ID=0.0.XXXXXXX
 ```
 
-### **4. Créer le Token KenePoints (optionnel)**
+### **4. Créer le Token KenePoints**
 
 ```bash
 node src/scripts/create-kenepoint-token.ts

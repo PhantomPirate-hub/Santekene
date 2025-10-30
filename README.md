@@ -68,7 +68,7 @@ npx prisma db seed
 npm run dev
 ```
 
-### **Backend IA (Python)** - *Optionnel*
+### **Backend IA (Python)**
 ```bash
 cd backend-ia
 python -m pip install -r requirements.txt
@@ -86,7 +86,7 @@ npm run dev
 ### **Accès**
 - Frontend : `http://localhost:3000`
 - Backend API : `http://localhost:3001`
-- Backend IA : `http://localhost:8000` *(optionnel)*
+- Backend IA : `http://localhost:8000`
 - SuperAdmin : `superadmin@santekene.com` / `SuperAdmin2024!`
 
 ---
@@ -483,7 +483,7 @@ http://localhost:3001
 # Attendu: 🌿 Santé Kènè API est en ligne !
 ```
 
-### **2. Backend IA fonctionne** *(optionnel)*
+### **2. Backend IA fonctionne**
 ```
 http://localhost:8000/docs
 # Attendu: Page Swagger/OpenAPI de l'API IA
