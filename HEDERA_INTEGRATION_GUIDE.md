@@ -71,7 +71,7 @@ L'application utilise une **architecture hybride** :
 **Pourquoi hybride ?**
 - ⚡ **Performance** : DB locale plus rapide pour les lectures
 - 💰 **Coût** : Transactions Hedera pour les événements critiques seulement
-- 🔒 **Sécurité** : Double stockage (local + blockchain)
+- 🔒 **Sécurité** : Double stockage (local + hedera)
 
 ---
 
@@ -139,7 +139,7 @@ HCS (Hedera Consensus Service) permet d'enregistrer des **messages immuables** a
    ↓
 7. Consensus Hedera (~3-5 secondes)
    ↓
-8. Message immuable sur la blockchain
+8. Message immuable sur hedera
    ↓
 9. Visible sur HashScan
 ```
@@ -338,9 +338,9 @@ Les utilisateurs gagnent des badges selon leur solde KNP :
 |-------|-----------|-------|---------|-----------|
 | **BRONZE** | 0-499 | 🥉 | Orange | Accès de base |
 | **ARGENT** | 500-1999 | 🥈 | Gris | Support prioritaire |
-| **OR** | 2000-4999 | 🥇 | Doré | Remise 5% + VIP |
-| **PLATINE** | 5000-9999 | 💎 | Cyan | Remise 10% + Événements exclusifs |
-| **VIP** | 10000+ | 👑 | Violet | Support 24/7 + Remise 15% + Accès anticipé |
+| **OR** | 2000-4999 | 🥇 | Doré | VIP |
+| **PLATINE** | 5000-9999 | 💎 | Cyan | Événements exclusifs |
+| **VIP** | 10000+ | 👑 | Violet | Accès anticipé |
 
 ### **Progression du badge**
 
@@ -518,11 +518,6 @@ FROM UserWallet;
 
 ---
 
-## **💡 Bonnes pratiques**
-
-
----
-
 ## **🔐 Sécurité**
 
 ### **1. Hash des données**
@@ -566,5 +561,5 @@ const isValid = await hederaHfsService.verifyFileIntegrity(
 
 ---
 
-🎉 **Votre application utilise maintenant la blockchain Hedera pour une traçabilité et une immuabilité totales !**
+🎉 **Votre application utilise maintenant Hedera pour une traçabilité et une immuabilité totales !**
 
