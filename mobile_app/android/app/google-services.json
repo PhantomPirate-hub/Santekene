@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "147191394989",
+    "project_id": "santekene-c5743",
+    "storage_bucket": "santekene-c5743.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:147191394989:android:01b0d7c345da388a784c24",
+        "android_client_info": {
+          "package_name": "com.example.mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-qkDrclSb3rS-FIJMs__MH4-9fKwwC6E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -56,6 +56,7 @@ import hederaRoutes from './routes/hedera.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import verificationRoutes from './routes/verification.routes.js';
 import walletRoutes from './routes/wallet.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 import { generalLimiter } from './middleware/rateLimiter.middleware.js';
 
@@ -68,6 +69,7 @@ app.use('/api', generalLimiter); // Applique le limiteur général à toutes les
 
 // Authentification
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Utilisateurs par rôle
 app.use('/api/patients', patientRoutes);

@@ -37,6 +37,7 @@ model User {
   communityComments CommunityComment[] @relation("CommunityComments")
   communityLikes CommunityLike[] @relation("CommunityLikes")
   wallet         UserWallet? // Portefeuille KenePoints
+  deviceToken    String?     @unique // For push notifications
 }
 
 // Rôles utilisateur

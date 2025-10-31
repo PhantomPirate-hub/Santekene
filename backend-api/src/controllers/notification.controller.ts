@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../services/prisma.service.js';
+import SnsService from '../services/aws-sns.service.js';
 
 /**
  * Contrôleur pour les notifications
@@ -175,6 +176,17 @@ export const createNotification = async (req: Request, res: Response) => {
       },
     });
 
+    // Send push notification via SNS
+    try {
+      const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+      if (user && user.deviceToken) {
+        await SnsService.sendPushNotification(user.deviceToken, message, { notificationId: notification.id.toString() });
+      }
+    } catch (snsError) {
+      console.error('SNS Error:', snsError);
+      // Do not block the response for SNS errors
+    }
+
     // Enregistrer dans les logs d'audit
     await prisma.auditLog.create({
       data: {
@@ -236,6 +248,31 @@ export const createBulkNotifications = async (req: Request, res: Response) => {
         isRead: false,
       })),
     });
+
+    // Send bulk push notifications
+    try {
+      const usersWithTokens = await prisma.user.findMany({
+        where: {
+          id: { in: targetUserIds },
+          deviceToken: { not: null },
+        },
+        select: {
+          deviceToken: true,
+        },
+      });
+
+      const pushPromises = usersWithTokens.map(user => {
+        if (user.deviceToken) {
+          return SnsService.sendPushNotification(user.deviceToken, message, { type });
+        }
+        return null;
+      }).filter(p => p !== null);
+
+      await Promise.all(pushPromises);
+
+    } catch (snsError) {
+      console.error('SNS Bulk Error:', snsError);
+    }
 
     // Enregistrer dans les logs d'audit
     await prisma.auditLog.create({
