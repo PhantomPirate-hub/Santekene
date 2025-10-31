@@ -69,8 +69,8 @@ Guide d'intégration mobile Flutter :
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    FRONTEND (Next.js 14)                 │
-│  React + TypeScript + Tailwind + Shadcn UI              │
+│     FRONTEND web et moibole (Next.js 14 & Flutter)      │
+│        React + TypeScript + Tailwind + Shadcn UI        │
 └─────────────────────────────────────────────────────────┘
            ↓ HTTP/REST (3001)      ↓ HTTP/REST (8000)
 ┌──────────────────────────┐    ┌──────────────────────────┐
@@ -80,13 +80,13 @@ Guide d'intégration mobile Flutter :
 └──────────────────────────┘    └──────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────┐
-│                  DATABASE (MySQL 8.0)                    │
+│                 DATABASE (MySQL 8.0)                    │
 │  Users, Patients, Doctors, Consultations, Documents     │
 │  Prescriptions, Appointments, Community, Wallets        │
 └─────────────────────────────────────────────────────────┘
            ↓
 ┌─────────────────────────────────────────────────────────┐
-│              HEDERA SERVICES (Testnet)                   │
+│             HEDERA SERVICES (Testnet)                   │
 │  HCS (Audit Trail) + HFS (Documents) + HTS (Tokens)     │
 └─────────────────────────────────────────────────────────┘
 ```
