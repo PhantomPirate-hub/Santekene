@@ -1,6 +1,13 @@
-# 🏥 **Santé Kènè - Documentation Complète**
+# 🏥 **Santé Kènè - Track 4 : IA & DePIN**
 
-## **📚 Documentation disponible**
+## **Lien du Pitch Deck et le lien des certifications des membres du groupe**
+- ✅ lien du pitch deck : https://gamma.app/docs/Sante-Kene-f49y38sneqxffba
+- ✅ Lassine MALE : https://certs.hashgraphdev.com/e2d43bbf-31ac-462a-8b0c-0fcdea8f2400.pdf
+- ✅ Aboubacar BANE : https://certs.hashgraphdev.com/7532df41-83b2-43ba-abfa-761795ed1b96.pdf
+- ✅ Assetou DIARRA : https://certs.hashgraphdev.com/c99a3a9e-6c2b-4668-8a88-8a8c93615dce.pdf
+- ✅ Yaya DIAKITE : https://certs.hashgraphdev.com/77feb7da-5481-4232-9726-dd84b0990692.pdf
+- ✅ Balkissa Oumar CISSE : https://certs.hashgraphdev.com/dd187a5f-532d-4a3b-8c67-512953fac0a8.pdf
+- ✅ Kadiatou DIARRA : https://certs.hashgraphdev.com/97016505-dae6-4246-abc5-9ced1cb93f82.pdf
 
 ### NB: cette section vous aide à comprendre la structure du projet, mais pour l'installation reférer vous à (`INSTALLATION_GUIDE.md`)
 
@@ -24,13 +31,24 @@ Guide détaillé de l'intégration blockchain Hedera :
 - ✅ HFS (File Service) - Documents immuables
 - ✅ HTS (Token Service) - Token KenePoints
 - ✅ Système KenePoints et badges
-- ✅ Architecture hybride DB + Blockchain
+- ✅ Architecture hybride DB
 - ✅ Workflows complets
 - ✅ Vérification sur HashScan
 
 **→ Consultez ce guide pour comprendre comment fonctionne Hedera**
 
-### **3. 📱 Flutter Integration Guide** (`FLUTTER_INTEGRATION_GUIDE.md`)
+### **3. 🤖 Backend IA** (`INSTALLATION_GUIDE.md`)
+L'intégration IA est documentée dans le guide d'installation :
+- ✅ Triage IA des symptômes (Groq Llama 3.3)
+- ✅ Assistant médical pour diagnostics (Groq)
+- ✅ Transcription audio (Whisper)
+- ✅ Recommandations médecins et centres de santé
+- ✅ Installation et configuration Backend IA
+- ✅ API Endpoints et exemples d'utilisation
+
+**→ Consultez la section "Installation Backend IA" dans `INSTALLATION_GUIDE.md`**
+
+### **4. 📱 Flutter Integration Guide** (`FLUTTER_INTEGRATION_GUIDE.md`)
 Guide d'intégration mobile Flutter :
 - ✅ Configuration projet Flutter
 - ✅ Authentification JWT
@@ -43,53 +61,7 @@ Guide d'intégration mobile Flutter :
 
 **→ Utilisez ce guide pour développer l'application mobile**
 
-### **4. 🤖 Backend IA** (dans ce README)
-L'intégration IA est documentée directement dans ce README :
-- ✅ Triage IA des symptômes (Groq Llama 3.3)
-- ✅ Assistant médical pour diagnostics (Groq)
-- ✅ Transcription audio (Whisper)
-- ✅ Recommandations médecins et centres de santé
-- ✅ Installation et configuration Backend IA
-- ✅ API Endpoints et exemples d'utilisation
 
-**→ Consultez la section "Intelligence Artificielle" ci-dessous**
-
----
-
-## **🎯 Démarrage rapide**
-
-### **Backend API (Node.js)**
-```bash
-cd backend-api
-npm install
-npx prisma migrate dev
-npx prisma generate
-npx prisma db seed
-npm run dev
-```
-
-### **Backend IA (Python)**
-```bash
-cd backend-ia
-python -m pip install -r requirements.txt
-# Créer .env avec GROQ_API_KEY
-python -m uvicorn main:app --reload --port 8000
-```
-
-### **Frontend (Next.js)**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### **Accès**
-- Frontend : `http://localhost:3000`
-- Backend API : `http://localhost:3001`
-- Backend IA : `http://localhost:8000`
-- SuperAdmin : `superadmin@santekene.com` / `SuperAdmin2024!`
-
----
 
 ## **🏗️ Architecture**
 
@@ -126,152 +98,6 @@ npm run dev
 | **HCS** | Consensus Service | Audit trail immuable de toutes les actions |
 | **HFS** | File Service | Documents médicaux immuables |
 | **HTS** | Token Service | Token KenePoints (10M supply) |
-
----
-
-## **🤖 Intelligence Artificielle**
-
-L'application intègre un **backend IA séparé** (Python/FastAPI) pour l'analyse des symptômes et les recommandations médicales.
-
-### **Fonctionnalités IA**
-
-#### **1. Triage IA des symptômes** 🩺
-- **Saisie texte** : Description manuelle des symptômes
-- **Saisie vocale** : Transcription automatique (speech-to-text)
-- **Analyse IA** : Évaluation de la gravité et recommandations
-- **Résultats** :
-  - Niveau de gravité (faible, moyen, élevé, urgent)
-  - Diagnostic probable
-  - Recommandations d'action
-  - Spécialités médicales suggérées
-
-#### **2. Recommandations intelligentes** 💡
-- **Médecins recommandés** : Basés sur les symptômes et spécialités
-- **Centres de santé à proximité** : Géolocalisation + calcul de distance (formule Haversine)
-- **Tri par pertinence** : Distance, disponibilité, spécialité
-
-### **Architecture IA**
-
-```
-Frontend (Next.js)
-    ↓
-Backend IA (FastAPI - Port 8000)
-    ↓
-┌─────────────────────────────────┐
-│  • Analyse symptômes (NLP)      │
-│  • Transcription audio           │
-│  • Recommandations médicales     │
-│  • Géolocalisation              │
-└─────────────────────────────────┘
-    ↓
-Backend API (Express - Port 3001)
-    ↓
-Base de données MySQL
-```
-
-### **Installation Backend IA**
-
-Le backend IA utilise **Groq API** (gratuit et ultra-rapide) :
-
-```bash
-# Prérequis
-cd backend-ai
-pip install -r requirements.txt
-
-# Configuration
-# Créer un fichier .env avec votre clé Groq
-echo "GROQ_API_KEY=votre_cle_ici" > .env
-
-# Démarrage
-python -m uvicorn main:app --reload --port 8000
-```
-
-**Obtenir une clé Groq (GRATUIT)** :
-1. Aller sur https://console.groq.com/keys
-2. Créer un compte gratuit
-3. Générer une clé API
-4. L'ajouter dans `backend-ai/.env`
-
-### **API Endpoints IA**
-
-| Endpoint | Méthode | Description |
-|----------|---------|-------------|
-| `/api/ai/triage` | POST | Analyse des symptômes |
-| `/api/ai/transcribe` | POST | Transcription audio → texte |
-| `/api/ai/recommend-doctors` | GET | Recommandations médecins |
-| `/api/ai/recommend-health-centers` | GET | Centres de santé proches |
-
-### **Utilisation**
-
-#### **1. Saisie texte**
-```typescript
-// Frontend appelle directement le backend IA
-const response = await fetch('http://localhost:8000/api/ai/triage', {
-  method: 'POST',
-  body: new URLSearchParams({ symptoms: 'fièvre et maux de tête' }),
-});
-```
-
-#### **2. Saisie vocale**
-```typescript
-// 1. Enregistrement audio via navigator.mediaDevices
-// 2. Envoi au backend IA pour transcription
-const formData = new FormData();
-formData.append('audio_file', audioBlob, 'recording.webm');
-
-const response = await fetch('http://localhost:8000/api/ai/transcribe', {
-  method: 'POST',
-  body: formData,
-});
-
-// 3. Transcription automatique puis analyse
-```
-
-### **Exemple de réponse IA**
-
-```json
-{
-  "severity": "moderate",
-  "diagnosis": "Probable infection respiratoire",
-  "recommendations": [
-    "Consulter un médecin généraliste",
-    "Se reposer et s'hydrater",
-    "Surveiller la température"
-  ],
-  "specialties": ["Médecine générale", "Pneumologie"],
-  "urgency_level": 2,
-  "recommended_doctors": [
-    {
-      "name": "Dr. Diallo",
-      "specialty": "Médecine générale",
-      "location": "Conakry",
-      "distance": 2.3
-    }
-  ],
-  "health_centers": [
-    {
-      "name": "Hôpital Ignace Deen",
-      "address": "Kaloum, Conakry",
-      "distance": 1.5
-    }
-  ]
-}
-```
-
-### **Technologies IA utilisées**
-
-- **FastAPI** : Framework web Python haute performance
-- **Groq API** : Llama 3.3 70B pour analyse médicale ultra-rapide (gratuit)
-- **Géolocalisation** : Formule de Haversine pour calcul de distance
-- **NLP** : Traitement du langage naturel pour extraction de symptômes
-
-### **Sécurité IA**
-
-- ✅ Aucune donnée médicale sensible envoyée au cloud
-- ✅ Analyse uniquement des symptômes (anonymisés)
-- ✅ Pas de stockage des conversations
-- ✅ Recommandations à titre informatif (non-diagnostic médical)
-- ⚠️ **Disclaimer** : L'IA ne remplace pas un avis médical professionnel
 
 ---
 
@@ -527,7 +353,7 @@ SELECT COUNT(*) FROM User WHERE role = 'SUPERADMIN';
 | Migration échoue | Supprimer dossiers vides dans `prisma/migrations/` |
 | Backend IA ne démarre pas | Vérifier `GROQ_API_KEY` dans `.env` (backend-ai) |
 | Erreur triage IA | Vérifier que backend IA est démarré sur port 8000 |
-| Erreur 400 model decommissioned | Modèle Groq obsolète, vérifier la version dans main.py |
+| Erreur 400 model decommissioned | Modèle groq obsolète, vérifier la version dans main.py |
 | Pas de recommandations | Vérifier `BACKEND_URL` dans `.env` (backend-ai) |
 
 ---
@@ -538,7 +364,7 @@ SELECT COUNT(*) FROM User WHERE role = 'SUPERADMIN';
 2. ✅ **Comprendre Hedera** → `HEDERA_INTEGRATION_GUIDE.md`
 3. ✅ **Développer mobile** → `FLUTTER_INTEGRATION_GUIDE.md`
 4. 🚀 **Déploiement production** (bientôt)
-5. 📱 **Application mobile** (en cours avec Flutter)
+5. 📱 **Application mobile** (en cours d'integration du backend avec Flutter)
 
 ---
 
@@ -572,26 +398,13 @@ SELECT COUNT(*) FROM User WHERE role = 'SUPERADMIN';
 
 ---
 
-## **🎉 Félicitations !**
-
-Vous avez maintenant accès à une **application de santé complète** avec :
-- ✅ Frontend moderne (Next.js 14)
-- ✅ Backend robuste (Node.js + Express)
-- ✅ Backend IA (Python + FastAPI + Groq API)
-- ✅ Base de données relationnelle (MySQL + Prisma)
-- ✅ Blockchain Hedera (HCS + HFS + HTS)
-- ✅ Intelligence Artificielle (Llama 3.3 70B)
-- ✅ Système de gamification (KenePoints + Badges)
-- ✅ Intégration mobile prête (Flutter)
-
 ---
 
-## **📞 Support**
+## **📞 Support : aboubacarbane@gmail.com**
 
 - **Documentation** : Consultez les 3 guides MD
 - **Logs backend** : `npm run dev` (terminal backend)
 - **Logs frontend** : Console navigateur (F12)
-- **HashScan** : `node show-hedera-links.js`
 
 ---
 

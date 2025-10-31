@@ -6,9 +6,10 @@
 3. [Installation Frontend](#installation-frontend)
 4. [Configuration Base de données](#configuration-base-de-données)
 5. [Configuration Hedera](#configuration-hedera)
-6. [Démarrage de l'application](#démarrage-de-lapplication)
-7. [Vérifications](#vérifications)
-8. [Dépannage](#dépannage)
+6. [Installation Backend IA](#🤖-installation-backend-ia)
+7. [Démarrage de l'application](#démarrage-de-lapplication)
+8. [Vérifications](#vérifications)
+9. [Dépannage](#dépannage)
 
 ---
 
@@ -20,6 +21,7 @@
 - **MySQL** : v8.0 ou supérieur
 - **Git** : pour cloner le projet
 - **Docker** : pour Redis
+- **Python** : v3.8 ou supérieur
 
 ### **Vérifier les versions**
 ```bash
@@ -27,6 +29,7 @@ node --version    # v18.0.0+
 npm --version     # v9.0.0+
 mysql --version   # 8.0+
 git --version
+python --version  # v3.8+
 ```
 
 ---
@@ -61,12 +64,16 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
 # Hedera Configuration (Testnet)
+
 HEDERA_NETWORK=testnet
+HEDERA_ACCOUNT_ID=0.0.XXXXXXX
+HEDERA_PRIVATE_KEY=302e020100300506032b657004220420...
+HEDERA_HCS_TOPIC_ID=0.0.XXXXXXX
+# Variables pour HCS/HTS/HFS Services (alias)
 HEDERA_OPERATOR_ID=0.0.XXXXXXX
 HEDERA_OPERATOR_KEY=302e020100300506032b657004220420...
 HEDERA_TOPIC_ID=0.0.XXXXXXX
 HEDERA_TOKEN_ID=0.0.XXXXXXX
-HEDERA_HMAC_SECRET=votre_secret_hmac
 
 # Redis (pour Hedera queues)
 REDIS_HOST=localhost
@@ -190,6 +197,7 @@ node src/scripts/create-hcs-topic.ts
 
 Ajoutez ce Topic ID dans votre `.env` :
 ```env
+HEDERA_HCS_TOPIC_ID=0.0.XXXXXXX
 HEDERA_TOPIC_ID=0.0.XXXXXXX
 ```
 
@@ -223,6 +231,83 @@ Installez Redis localement selon votre système d'exploitation.
 
 ---
 
+## **🤖 Installation Backend IA**
+
+L'application intègre un **backend IA séparé** (Python/FastAPI) pour l'analyse des symptômes et les recommandations médicales.
+
+### **1. Prérequis**
+
+- **Python** : v3.8 ou supérieur
+- **pip** : Gestionnaire de paquets Python
+- **Compte Groq** : Gratuit, pour accéder à l'API Groq
+
+### **2. Installation**
+
+#### **Installer Python (si nécessaire)**
+
+**Windows** :
+- Télécharger depuis : https://www.python.org/downloads/
+- Cochez "Add Python to PATH" lors de l'installation
+
+**Linux/Mac** :
+```bash
+python3 --version  # Vérifier la version
+```
+
+#### **Installer les dépendances**
+
+```bash
+cd backend-ai
+python -m pip install -r requirements.txt
+```
+
+### **3. Configuration**
+
+#### **Obtenir une clé Groq (GRATUIT)**
+
+1. Aller sur : https://console.groq.com/keys
+2. Créer un compte gratuit
+3. Générer une clé API
+4. Copier la clé
+
+#### **Créer le fichier `.env`**
+
+Créez un fichier `.env` à la racine de `backend-ai/` :
+
+```env
+GROQ_API_KEY=votre_cle_groq_ici
+BACKEND_URL=http://localhost:3001
+```
+
+**⚠️ Important** : Remplacez `votre_cle_groq_ici` par votre vraie clé Groq.
+
+### **4. Démarrer le Backend IA**
+
+```bash
+cd backend-ai
+python -m uvicorn main:app --reload --port 8000
+```
+
+**Terminal devrait afficher** :
+```
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process
+INFO:     Started server process
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
+### **5. Vérifier l'installation**
+
+Ouvrez votre navigateur :
+```
+http://localhost:8000/docs
+```
+
+Vous devriez voir la **documentation Swagger/OpenAPI** du Backend IA avec tous les endpoints disponibles.
+
+---
+
 ## **🚀 Démarrage de l'application**
 
 ### **1. Démarrer le backend**
@@ -247,7 +332,15 @@ npm run dev
 🚀 Serveur backend démarré sur http://localhost:3001
 ```
 
-### **2. Démarrer le frontend**
+### **2. Démarrer le Backend IA** *(Optionnel - si installé)*
+
+**Dans un nouveau terminal** :
+```bash
+cd backend-ai
+python -m uvicorn main:app --reload --port 8000
+```
+
+### **3. Démarrer le frontend**
 
 **Dans un nouveau terminal** :
 ```bash
@@ -261,7 +354,7 @@ npm run dev
 ○ Local:   http://localhost:3000
 ```
 
-### **3. Accéder à l'application**
+### **4. Accéder à l'application**
 
 Ouvrez votre navigateur :
 ```
@@ -283,6 +376,15 @@ SELECT id, name, email, role FROM User WHERE role = 'SUPERADMIN';
 SHOW TABLES;
 ```
 
+### **2. Vérifier le Backend IA** *(si installé)*
+
+Ouvrir dans le navigateur :
+```
+http://localhost:8000/docs
+```
+
+**Attendu** : Page Swagger/OpenAPI de l'API IA
+
 ### **3. Se connecter au frontend**
 
 1. Aller sur `http://localhost:3000/login`
@@ -290,6 +392,13 @@ SHOW TABLES;
    - Email : `superadmin@santekene.com`
    - Mot de passe : `SuperAdmin2024!`
 3. Vous devriez être redirigé vers `/dashboard/superadmin`
+
+### **4. Tester l'IA Clinique** *(si Backend IA installé)*
+
+1. Se connecter en tant que patient
+2. Aller sur **IA Clinique** (menu)
+3. Saisir des symptômes (texte ou vocal)
+4. **Attendu** : Analyse IA + recommandations médecins/centres de santé
 
 ---
 
@@ -421,6 +530,118 @@ Could not find migration file
 ```bash
 npx prisma migrate dev
 ```
+
+### **Problème 6 : Backend IA ne démarre pas**
+
+**Erreur** :
+```
+ModuleNotFoundError: No module named 'fastapi'
+```
+
+**Solution** :
+1. Vérifier que Python est installé :
+```bash
+python --version
+```
+2. Réinstaller les dépendances :
+```bash
+cd backend-ai
+python -m pip install -r requirements.txt
+```
+
+### **Problème 7 : Erreur Groq API**
+
+**Erreur** :
+```
+Error: Invalid API key
+```
+
+**Solution** :
+1. Vérifier que `GROQ_API_KEY` est défini dans `backend-ai/.env`
+2. Obtenir une nouvelle clé sur : https://console.groq.com/keys
+3. Redémarrer le Backend IA
+
+### **Problème 8 : Port 8000 déjà utilisé**
+
+**Erreur** :
+```
+Error: listen EADDRINUSE: address already in use :::8000
+```
+
+**Solution** :
+1. Changer le port lors du démarrage :
+```bash
+python -m uvicorn main:app --reload --port 8001
+```
+2. Mettre à jour `NEXT_PUBLIC_AI_API_URL` dans `frontend/.env.local` :
+```env
+NEXT_PUBLIC_AI_API_URL=http://localhost:8001
+```
+
+---
+
+## **🤖 Fonctionnalités Backend IA**
+
+### **Fonctionnalités IA**
+
+#### **1. Triage IA des symptômes** 🩺
+- **Saisie texte** : Description manuelle des symptômes
+- **Saisie vocale** : Transcription automatique (speech-to-text)
+- **Analyse IA** : Évaluation de la gravité et recommandations
+- **Résultats** :
+  - Niveau de gravité (faible, moyen, élevé, urgent)
+  - Diagnostic probable
+  - Recommandations d'action
+  - Spécialités médicales suggérées
+
+#### **2. Recommandations intelligentes** 💡
+- **Médecins recommandés** : Basés sur les symptômes et spécialités
+- **Centres de santé à proximité** : Géolocalisation + calcul de distance (formule Haversine)
+- **Tri par pertinence** : Distance, disponibilité, spécialité
+
+### **Architecture IA**
+
+```
+Frontend (Next.js)
+    ↓
+Backend IA (FastAPI - Port 8000)
+    ↓
+┌─────────────────────────────────┐
+│  • Analyse symptômes (NLP)      │
+│  • Transcription audio           │
+│  • Recommandations médicales     │
+│  • Géolocalisation              │
+└─────────────────────────────────┘
+    ↓
+Backend API (Express - Port 3001)
+    ↓
+Base de données MySQL
+```
+
+### **API Endpoints IA**
+
+| Endpoint | Méthode | Description |
+|----------|---------|-------------|
+| `/api/ai/triage` | POST | Analyse des symptômes |
+| `/api/ai/transcribe` | POST | Transcription audio → texte |
+| `/api/ai/recommend-doctors` | GET | Recommandations médecins |
+| `/api/ai/recommend-health-centers` | GET | Centres de santé proches |
+
+
+### **Technologies IA utilisées**
+
+- **FastAPI** : Framework web Python haute performance
+- **Groq API** : Llama 3.3 70B pour analyse médicale ultra-rapide (gratuit)
+- **Géolocalisation** : Formule de Haversine pour calcul de distance
+- **NLP** : Traitement du langage naturel pour extraction de symptômes
+
+### **Sécurité IA**
+
+- ✅ Aucune donnée médicale sensible envoyée au cloud
+- ✅ Analyse uniquement des symptômes (anonymisés)
+- ✅ Pas de stockage des conversations
+- ✅ Recommandations à titre informatif (non-diagnostic médical)
+- ⚠️ **Disclaimer** : L'IA ne remplace pas un avis médical professionnel
 
 ---
 
